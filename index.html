@@ -1,194 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>English Pronunciation Study</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 20px;
-      line-height: 1.6;
-      color: #333;
-      background: #f7f7f7;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English Pronunciation Study</title>
 
-    main {
-      background: white;
-      padding: 28px;
-      border-radius: 12px;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 20px;
+    line-height: 1.6;
+    color: #333;
+    background: #f7f7f7;
+  }
 
-    button {
-      padding: 12px 18px;
-      margin: 6px 4px 6px 0;
-      border: 0;
-      border-radius: 6px;
-      background: #243b53;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
+  main {
+    background: white;
+    padding: 28px;
+    border-radius: 12px;
+  }
 
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+  button {
+    padding: 12px 18px;
+    margin: 6px 4px 6px 0;
+    border: 0;
+    border-radius: 6px;
+    background: #243b53;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
 
-    audio {
-      display: block;
-      width: 100%;
-      margin: 16px 0;
-    }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-    #status {
-      font-weight: bold;
-    }
+  audio {
+    display: block;
+    width: 100%;
+    margin: 16px 0;
+  }
 
-    #diagnostics {
-      background: #f0f4f8;
-      padding: 16px;
-      border-radius: 8px;
-      overflow-wrap: anywhere;
-      margin-top: 18px;
-    }
+  #status {
+    font-weight: bold;
+  }
 
-    #diagnostics .warning {
-      color: #8a3b12;
-      font-weight: bold;
-    }
+  #diagnostics {
+    background: #f0f4f8;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+    margin-top: 18px;
+  }
 
-    #practice-screen {
-      text-align: left;
-    }
+  #diagnostics .warning {
+    color: #8a3b12;
+    font-weight: bold;
+  }
 
-    #practice-word {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 180px;
-      margin: 24px 0;
-      padding: 20px;
-      background: #f0f4f8;
-      border-radius: 8px;
-      font-size: 36px;
-      font-weight: bold;
-      text-align: center;
-    }
+  #practice-word,
+  #main-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    margin: 24px 0;
+    padding: 20px;
+    background: #f0f4f8;
+    border-radius: 8px;
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+  }
 
-    #practice-progress {
-      color: #52606d;
-      font-size: 14px;
-      text-align: center;
-    }
+  #practice-progress,
+  #main-progress {
+    color: #52606d;
+    font-size: 14px;
+    text-align: center;
+  }
 
-    #practice-complete {
-      color: #216e39;
-      font-weight: bold;
-    }
-  </style>
+  #practice-complete {
+    color: #216e39;
+    font-weight: bold;
+  }
+
+  #recording-indicator {
+    color: #b42318;
+    font-weight: bold;
+  }
+
+  .instructions {
+    margin-bottom: 20px;
+  }
+</style>
 </head>
 
 <body>
 <main>
-  <h1>English Pronunciation Study</h1>
 
-  <!-- PRACTICE SESSION: no microphone access or recording -->
-  <section id="practice-screen">
-    <h2>Practice session</h2>
+<h1>English Pronunciation Study</h1>
 
-    <p>You will see a few English words, one at a time.</p>
+<!-- ================================== -->
+<!-- PRACTICE SESSION                  -->
+<!-- ================================== -->
+
+<section id="practice-screen">
+
+  <h2>Practice session</h2>
+
+  <p>You will see a few English words, one at a time.</p>
+
+  <ul>
+    <li>Read each word aloud when it appears on the screen.</li>
+    <li>Each word will stay on the screen for 4 seconds.</li>
+    <li>Read the words in the order shown.</li>
+    <li>You do not need to press anything between words. The next word will appear automatically.</li>
+  </ul>
+
+  <p>
+    This is a short practice session to help you get used to the task.
+    These words will not be included in your main recording.
+  </p>
+
+  <div id="practice-word" hidden></div>
+
+  <p id="practice-progress" aria-live="polite"></p>
+
+  <p id="practice-complete" hidden>
+    Practice complete!
+  </p>
+
+  <button id="practice-start" type="button">
+    Start practice
+  </button>
+
+</section>
+
+
+<!-- ================================== -->
+<!-- MAIN TASK INSTRUCTIONS            -->
+<!-- ================================== -->
+
+<section id="main-instructions" hidden>
+
+  <h2>Part I – Word reading</h2>
+
+  <div class="instructions">
+
+    <p>
+      You will read 28 English words, one at a time.
+    </p>
 
     <ul>
       <li>Read each word aloud when it appears on the screen.</li>
+      <li>Read the words at your normal speaking speed.</li>
       <li>Each word will stay on the screen for 4 seconds.</li>
       <li>Read the words in the order shown.</li>
-      <li>You do not need to press anything between words. The next word will appear automatically.</li>
     </ul>
 
-    <p>This is a short practice session to help you get used to the task. These words will not be included in your main recording.</p>
-
-    <div id="practice-word" hidden></div>
-
-    <p id="practice-progress" aria-live="polite"></p>
-
-    <p id="practice-complete" hidden>
-      Practice complete!
+    <p>
+      Before you start, find a quiet place and make sure your microphone
+      is working.
     </p>
-
-    <button id="practice-start" type="button">
-      Start practice
-    </button>
-  </section>
-
-  <!-- TEMPORARY MICROPHONE TEST: revealed after practice -->
-  <section id="reading-task" hidden>
-    <h2>Practice reading</h2>
 
     <p>
-      Please find a quiet room and allow microphone access when prompted.
-      When you are ready, press <strong>Start recording</strong>.
-      Read the passage below aloud at your normal pace, speaking naturally.
-      Once you have finished reading the entire passage, press
-      <strong>Stop recording</strong>.
+      When you press <strong>Start recording</strong>, a short countdown
+      will appear. The recording will then start automatically.
+      You do not need to press anything between words.
     </p>
 
-    <div style="background:#f0f4f8; padding:18px; border-radius:8px;">
-      The three students thought about the book they had read.
-      One chose a blue notebook, while another looked at the clock.
-      They walked through the quiet room and discussed their plans.
-    </div>
-  </section>
+    <p>
+      At the end, you can listen to your recording before downloading it.
+    </p>
 
-  <button id="start" type="button" hidden>
+  </div>
+
+  <button id="start" type="button">
     Start recording
   </button>
 
-  <button id="stop" type="button" disabled hidden>
-    Stop recording
-  </button>
+</section>
 
-  <p id="status" role="status" aria-live="polite">
-    Complete the practice session to continue.
+
+<!-- ================================== -->
+<!-- MAIN WORD DISPLAY                 -->
+<!-- ================================== -->
+
+<section id="main-task" hidden>
+
+  <p id="recording-indicator" hidden>
+    ● Recording
   </p>
 
-  <div id="diagnostics" hidden></div>
+  <div id="main-display" aria-live="off"></div>
 
-  <audio id="playback" controls hidden></audio>
+  <p id="main-progress" aria-live="polite"></p>
+
+</section>
+
+
+<!-- ================================== -->
+<!-- RECORDING RESULTS                 -->
+<!-- ================================== -->
+
+<section id="results" hidden>
+
+  <h2>Recording complete</h2>
 
   <p>
-    <a id="download" hidden>Download recording (24-bit WAV)</a>
+    You can listen to your recording below.
   </p>
+
+  <audio id="playback" controls></audio>
+
+  <p>
+    <a id="download">Download recording (24-bit WAV)</a>
+  </p>
+
+  <p>
+    <a id="metadata-download">Download word timing information (JSON)</a>
+  </p>
+
+</section>
+
+
+<p id="status" role="status" aria-live="polite">
+  Complete the practice session to continue.
+</p>
+
+<div id="diagnostics" hidden></div>
+
 </main>
+
 
 <script>
 "use strict";
 
+
+// ============================================
+// SETTINGS
+// ============================================
+
 const TARGET_SAMPLE_RATE = 44100;
 const STOP_ACK_TIMEOUT_MS = 3000;
-const PRACTICE_WORD_DURATION_MS = 4000;
 
-const startButton = document.getElementById("start");
-const stopButton = document.getElementById("stop");
-const statusText = document.getElementById("status");
-const playback = document.getElementById("playback");
-const downloadLink = document.getElementById("download");
-const diagnostics = document.getElementById("diagnostics");
+const WORD_DURATION_MS = 4000;
+const COUNTDOWN_SECONDS = 3;
+
+
+// ============================================
+// WORD LIST
+// ============================================
+
+const mainWords = [
+  "book",
+  "food",
+  "ship",
+  "cow",
+  "chicken",
+  "sheep",
+  "cat",
+  "kitten",
+  "cup",
+  "yellow",
+  "car",
+  "bike",
+  "bath",
+  "shower",
+  "red",
+  "lot",
+  "small",
+  "walk",
+  "leaf",
+  "call",
+  "theatre",
+  "concert",
+  "this",
+  "singing",
+  "matter",
+  "take",
+  "box",
+  "pet"
+];
+
+const practiceWords = [
+  "window",
+  "morning",
+  "happy",
+  "garden"
+];
+
+
+// ============================================
+// HTML ELEMENTS
+// ============================================
+
+const practiceScreen =
+  document.getElementById("practice-screen");
+
+const practiceStartButton =
+  document.getElementById("practice-start");
+
+const practiceWordDisplay =
+  document.getElementById("practice-word");
+
+const practiceProgress =
+  document.getElementById("practice-progress");
+
+const practiceComplete =
+  document.getElementById("practice-complete");
+
+const mainInstructions =
+  document.getElementById("main-instructions");
+
+const mainTask =
+  document.getElementById("main-task");
+
+const mainDisplay =
+  document.getElementById("main-display");
+
+const mainProgress =
+  document.getElementById("main-progress");
+
+const startButton =
+  document.getElementById("start");
+
+const recordingIndicator =
+  document.getElementById("recording-indicator");
+
+const statusText =
+  document.getElementById("status");
+
+const results =
+  document.getElementById("results");
+
+const playback =
+  document.getElementById("playback");
+
+const downloadLink =
+  document.getElementById("download");
+
+const metadataDownload =
+  document.getElementById("metadata-download");
+
+const diagnostics =
+  document.getElementById("diagnostics");
+
+
+// ============================================
+// RECORDER VARIABLES
+// ============================================
 
 let audioContext = null;
 let stream = null;
 let source = null;
 let workletNode = null;
 let silentGain = null;
+
 let chunks = [];
+
 let recording = false;
 let starting = false;
+
 let recordingUrl = null;
+let metadataUrl = null;
+
 let stopAcknowledged = null;
 let stopTimeout = null;
+
 let workletStats = null;
+
+let recordingStartedAt = null;
+
+let wordTimingData = [];
+
+let taskTimer = null;
+
+
+// ============================================
+// GENERAL FUNCTIONS
+// ============================================
 
 function escapeHtml(value) {
   return String(value)
@@ -198,6 +393,7 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
 
 function formatValue(value) {
   if (value === undefined || value === null) {
@@ -215,14 +411,88 @@ function formatValue(value) {
   return String(value);
 }
 
-function showAudioDiagnostics(track, context, contextNote = "") {
+
+// ============================================
+// PRACTICE SESSION
+// ============================================
+
+let practiceRunning = false;
+
+practiceStartButton.addEventListener("click", () => {
+
+  if (practiceRunning) return;
+
+  practiceRunning = true;
+
+  practiceStartButton.disabled = true;
+  practiceWordDisplay.hidden = false;
+  practiceComplete.hidden = true;
+
+  const startTime = performance.now();
+
+  function showPracticeWord(index) {
+
+    if (index >= practiceWords.length) {
+
+      practiceWordDisplay.hidden = true;
+      practiceProgress.textContent = "";
+      practiceComplete.hidden = false;
+
+      practiceStartButton.hidden = true;
+
+      practiceScreen.hidden = true;
+      mainInstructions.hidden = false;
+
+      statusText.textContent =
+        "Practice complete. You can start the main task.";
+
+      return;
+    }
+
+    practiceWordDisplay.textContent =
+      practiceWords[index];
+
+    practiceProgress.textContent =
+      `Word ${index + 1} of ${practiceWords.length}`;
+
+    const nextTime =
+      startTime + (index + 1) * WORD_DURATION_MS;
+
+    const delay = Math.max(
+      0,
+      nextTime - performance.now()
+    );
+
+    window.setTimeout(() => {
+      showPracticeWord(index + 1);
+    }, delay);
+
+  }
+
+  showPracticeWord(0);
+
+});
+
+
+// ============================================
+// AUDIO DIAGNOSTICS
+// ============================================
+
+function showAudioDiagnostics(
+  track,
+  context,
+  contextNote = ""
+) {
+
   const settings = track.getSettings();
   const constraints = track.getConstraints();
-  const contextRateMatches = context.sampleRate === TARGET_SAMPLE_RATE;
+
+  const contextRateMatches =
+    context.sampleRate === TARGET_SAMPLE_RATE;
 
   const contextRateMessage = contextRateMatches
     ? "Yes"
-    : `No. The browser is using ${context.sampleRate} Hz; this WAV will be labelled with that actual rate.`;
+    : `No. The browser is using ${context.sampleRate} Hz.`;
 
   diagnostics.hidden = false;
 
@@ -284,14 +554,20 @@ function showAudioDiagnostics(track, context, contextNote = "") {
     ${contextRateMatches
       ? ""
       : `<p class="warning">
-          The requested 44.1 kHz AudioContext rate was not obtained on
-          this device/browser. Check this before using the recording
-          in the study.
+          The requested 44.1 kHz AudioContext rate was not obtained.
+          Check this before using the recording in the study.
         </p>`}
   `;
+
 }
 
+
+// ============================================
+// RECORDER CLEANUP
+// ============================================
+
 async function cleanUpRecorder() {
+
   recording = false;
 
   if (stopTimeout !== null) {
@@ -302,39 +578,34 @@ async function cleanUpRecorder() {
   stopAcknowledged = null;
 
   if (workletNode) {
+
     workletNode.port.onmessage = null;
 
     try {
       workletNode.port.close();
-    } catch {
-      // The port may already be closed.
-    }
+    } catch {}
 
     try {
       workletNode.disconnect();
-    } catch {
-      // The node may already be disconnected.
-    }
+    } catch {}
 
     workletNode = null;
   }
 
   if (source) {
+
     try {
       source.disconnect();
-    } catch {
-      // The node may already be disconnected.
-    }
+    } catch {}
 
     source = null;
   }
 
   if (silentGain) {
+
     try {
       silentGain.disconnect();
-    } catch {
-      // The node may already be disconnected.
-    }
+    } catch {}
 
     silentGain = null;
   }
@@ -345,30 +616,44 @@ async function cleanUpRecorder() {
   }
 
   if (audioContext && audioContext.state !== "closed") {
+
     try {
       await audioContext.close();
-    } catch {
-      // Continue cleanup if the browser fails to close the context.
-    }
+    } catch {}
+
   }
 
   audioContext = null;
+
 }
 
+
+// ============================================
+// SIGNAL LEVEL MEASUREMENTS
+// ============================================
+
 function toDbfs(amplitude) {
+
   if (!Number.isFinite(amplitude) || amplitude <= 0) {
     return "−∞ dBFS";
   }
 
   return `${(20 * Math.log10(amplitude)).toFixed(1)} dBFS`;
+
 }
 
+
 function measureFloatLevels(samples) {
+
   let peak = 0;
   let sumSquares = 0;
 
   for (let i = 0; i < samples.length; i++) {
-    const value = Number.isFinite(samples[i]) ? samples[i] : 0;
+
+    const value = Number.isFinite(samples[i])
+      ? samples[i]
+      : 0;
+
     const absolute = Math.abs(value);
 
     if (absolute > peak) peak = absolute;
@@ -387,11 +672,15 @@ function measureFloatLevels(samples) {
     peakDbfs: toDbfs(peak),
     rmsDbfs: toDbfs(rms)
   };
+
 }
 
+
 async function measureWav24BitLevels(blob) {
+
   const buffer = await blob.arrayBuffer();
   const view = new DataView(buffer);
+
   const dataSize = view.getUint32(40, true);
   const sampleCount = Math.floor(dataSize / 3);
 
@@ -399,11 +688,13 @@ async function measureWav24BitLevels(blob) {
   let sumSquares = 0;
 
   for (let i = 0; i < sampleCount; i++) {
+
     const offset = 44 + i * 3;
 
-    const unsigned = view.getUint8(offset)
-      | (view.getUint8(offset + 1) << 8)
-      | (view.getUint8(offset + 2) << 16);
+    const unsigned =
+      view.getUint8(offset) |
+      (view.getUint8(offset + 1) << 8) |
+      (view.getUint8(offset + 2) << 16);
 
     const signed = (unsigned & 0x800000)
       ? unsigned - 0x1000000
@@ -431,9 +722,16 @@ async function measureWav24BitLevels(blob) {
     peakDbfs: toDbfs(peak),
     rmsDbfs: toDbfs(rms)
   };
+
 }
 
-function displaySignalDiagnostics(inputStats, rawLevels, wavLevels) {
+
+function displaySignalDiagnostics(
+  inputStats,
+  rawLevels,
+  wavLevels
+) {
+
   const channelRows = inputStats?.channels?.length
     ? inputStats.channels.map(channel => `
         <tr>
@@ -442,7 +740,7 @@ function displaySignalDiagnostics(inputStats, rawLevels, wavLevels) {
           <td>${toDbfs(channel.peak)}</td>
           <td>${toDbfs(channel.rms)}</td>
         </tr>`).join("")
-    : `<tr><td colspan="4">Input-channel statistics were not received from the worklet.</td></tr>`;
+    : `<tr><td colspan="4">Input-channel statistics were not received.</td></tr>`;
 
   const mixedRow = inputStats?.mixed ? `
       <tr>
@@ -453,26 +751,31 @@ function displaySignalDiagnostics(inputStats, rawLevels, wavLevels) {
       </tr>` : "";
 
   diagnostics.insertAdjacentHTML("beforeend", `
+
     <hr>
-    <h3>Signal-level diagnostics (no gain applied)</h3>
+
+    <h3>Signal-level diagnostics</h3>
 
     <p><strong>Worklet input channel count:</strong>
       ${inputStats?.channelCount ?? "Not reported"}</p>
 
-    <p>Peak and RMS are shown in dBFS. Values closer to 0 dBFS are louder; 0 dBFS is the digital maximum.</p>
+    <p>Peak and RMS are shown in dBFS.</p>
 
     <div style="overflow-x:auto">
+
       <table style="width:100%;border-collapse:collapse">
+
         <thead>
           <tr>
-            <th style="text-align:left">Signal</th>
-            <th style="text-align:left">Frames</th>
-            <th style="text-align:left">Peak</th>
-            <th style="text-align:left">RMS</th>
+            <th>Signal</th>
+            <th>Frames</th>
+            <th>Peak</th>
+            <th>RMS</th>
           </tr>
         </thead>
 
         <tbody>
+
           ${channelRows}
           ${mixedRow}
 
@@ -489,137 +792,175 @@ function displaySignalDiagnostics(inputStats, rawLevels, wavLevels) {
             <td>${wavLevels.peakDbfs}</td>
             <td>${wavLevels.rmsDbfs}</td>
           </tr>
+
         </tbody>
       </table>
+
     </div>
 
-    <p><strong>How to interpret:</strong>
-      compare each input channel's RMS with the mono mix.
-      If the mix is much quieter than a channel (for example,
-      several dB lower), the downmix may be reducing the signal.
-      The float-sample and decoded-WAV levels should be nearly
-      identical; a meaningful difference would point to a
-      conversion/encoding issue.
+    <p>
+      The float-sample and decoded-WAV levels should be nearly identical.
     </p>
+
   `);
+
 }
 
 
 // ============================================
-// PRACTICE SESSION
-// No microphone access or recording at this stage.
+// MAIN WORD DISPLAY
 // ============================================
 
-const practiceWords = [
-  "window",
-  "morning",
-  "happy",
-  "garden"
-];
+function startWordSequence() {
 
-const practiceStartButton =
-  document.getElementById("practice-start");
+  mainTask.hidden = false;
 
-const practiceWordDisplay =
-  document.getElementById("practice-word");
+  recordingIndicator.hidden = false;
 
-const practiceProgress =
-  document.getElementById("practice-progress");
+  const firstWordTime =
+    performance.now();
 
-const practiceComplete =
-  document.getElementById("practice-complete");
+  function showWord(index) {
 
-const practiceScreen =
-  document.getElementById("practice-screen");
+    if (index >= mainWords.length) {
 
-const readingTask =
-  document.getElementById("reading-task");
-
-let practiceRunning = false;
-
-practiceStartButton.addEventListener("click", () => {
-  if (practiceRunning) return;
-
-  practiceRunning = true;
-
-  practiceStartButton.disabled = true;
-  practiceWordDisplay.hidden = false;
-  practiceComplete.hidden = true;
-
-  const startTime = performance.now();
-  const totalWords = practiceWords.length;
-
-  function showPracticeWord(index) {
-    if (index >= totalWords) {
-      practiceWordDisplay.hidden = true;
-      practiceProgress.textContent = "";
-      practiceComplete.hidden = false;
-      practiceStartButton.hidden = true;
-
-      // Reveal the existing microphone-test task after practice.
-      readingTask.hidden = false;
-      startButton.hidden = false;
-      stopButton.hidden = false;
+      mainDisplay.textContent = "";
+      mainProgress.textContent = "";
 
       statusText.textContent =
-        "Practice complete. You can continue.";
+        "All words completed. Finishing your recording…";
+
+      finishRecording();
 
       return;
     }
 
-    practiceWordDisplay.textContent = practiceWords[index];
+    const word = mainWords[index];
 
-    practiceProgress.textContent =
-      `Word ${index + 1} of ${totalWords}`;
+    const actualTime = performance.now();
 
-    // Schedule each change against the original start time
-    // to limit timing drift.
+    wordTimingData.push({
+      wordNumber: index + 1,
+      word: word,
+      timeFromRecordingStartMs: Math.round(
+        actualTime - recordingStartedAt
+      ),
+      scheduledTimeFromFirstWordMs:
+        index * WORD_DURATION_MS
+    });
+
+    mainDisplay.textContent = word;
+
+    mainProgress.textContent =
+      `Word ${index + 1} of ${mainWords.length}`;
+
     const nextTime =
-      startTime + (index + 1) * PRACTICE_WORD_DURATION_MS;
+      firstWordTime + (index + 1) * WORD_DURATION_MS;
 
     const delay = Math.max(
       0,
       nextTime - performance.now()
     );
 
-    window.setTimeout(() => {
-      showPracticeWord(index + 1);
+    taskTimer = window.setTimeout(() => {
+      showWord(index + 1);
     }, delay);
+
   }
 
-  showPracticeWord(0);
-});
+  showWord(0);
+
+}
 
 
 // ============================================
-// RECORDING
-// Existing microphone and WAV recording system.
+// COUNTDOWN
+// ============================================
+
+function startCountdown() {
+
+  let count = COUNTDOWN_SECONDS;
+
+  mainTask.hidden = false;
+  mainDisplay.textContent = count.toString();
+
+  statusText.textContent = "Get ready!";
+
+  function nextCount() {
+
+    count--;
+
+    if (count > 0) {
+
+      mainDisplay.textContent = count.toString();
+
+      taskTimer = window.setTimeout(
+        nextCount,
+        1000
+      );
+
+    } else {
+
+      mainDisplay.textContent = "Start";
+
+      taskTimer = window.setTimeout(() => {
+
+        mainDisplay.textContent = "";
+
+        statusText.textContent =
+          "Please read each word aloud.";
+
+        startWordSequence();
+
+      }, 1000);
+
+    }
+
+  }
+
+  taskTimer = window.setTimeout(
+    nextCount,
+    1000
+  );
+
+}
+
+
+// ============================================
+// START RECORDING
 // ============================================
 
 startButton.addEventListener("click", async () => {
+
   if (starting || recording) return;
 
   starting = true;
+
   startButton.disabled = true;
-  stopButton.disabled = true;
 
   chunks = [];
+  wordTimingData = [];
   workletStats = null;
 
-  playback.hidden = true;
-  downloadLink.hidden = true;
+  results.hidden = true;
   diagnostics.hidden = true;
 
-  statusText.textContent = "Requesting microphone access…";
+  mainInstructions.hidden = true;
+  mainTask.hidden = false;
+
+  statusText.textContent =
+    "Requesting microphone access…";
 
   try {
+
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error(
-        "Microphone recording is unavailable in this browser context. Open the HTTPS website in a supported browser."
+        "Microphone recording is unavailable in this browser. Please use the HTTPS website in a supported browser."
       );
     }
 
     stream = await navigator.mediaDevices.getUserMedia({
+
       audio: {
         channelCount: { ideal: 1 },
         sampleRate: { ideal: TARGET_SAMPLE_RATE },
@@ -628,32 +969,42 @@ startButton.addEventListener("click", async () => {
         noiseSuppression: false,
         autoGainControl: false
       }
+
     });
 
     const AudioContextClass =
-      window.AudioContext || window.webkitAudioContext;
+      window.AudioContext ||
+      window.webkitAudioContext;
 
     if (!AudioContextClass) {
-      throw new Error("Web Audio is not supported by this browser.");
+      throw new Error(
+        "Web Audio is not supported by this browser."
+      );
     }
 
     let contextNote = "";
 
     try {
+
       audioContext = new AudioContextClass({
         sampleRate: TARGET_SAMPLE_RATE
       });
+
     } catch (error) {
+
       contextNote =
-        `The browser could not create a 44.1 kHz AudioContext and its default rate was used. (${error.message})`;
+        `The browser could not create a 44.1 kHz AudioContext. (${error.message})`;
 
       audioContext = new AudioContextClass();
+
     }
 
     await audioContext.resume();
 
     if (!audioContext.audioWorklet) {
-      throw new Error("AudioWorklet is not supported by this browser.");
+      throw new Error(
+        "AudioWorklet is not supported by this browser."
+      );
     }
 
     await audioContext.audioWorklet.addModule(
@@ -663,10 +1014,16 @@ startButton.addEventListener("click", async () => {
     const track = stream.getAudioTracks()[0];
 
     if (!track) {
-      throw new Error("No audio input track was found.");
+      throw new Error(
+        "No audio input track was found."
+      );
     }
 
-    showAudioDiagnostics(track, audioContext, contextNote);
+    showAudioDiagnostics(
+      track,
+      audioContext,
+      contextNote
+    );
 
     source = audioContext.createMediaStreamSource(stream);
 
@@ -688,9 +1045,13 @@ startButton.addEventListener("click", async () => {
     silentGain.connect(audioContext.destination);
 
     workletNode.port.onmessage = event => {
+
       if (event.data instanceof Float32Array) {
-        // Accept chunks posted immediately before the stop acknowledgement.
-        chunks.push(new Float32Array(event.data));
+
+        chunks.push(
+          new Float32Array(event.data)
+        );
+
         return;
       }
 
@@ -699,6 +1060,7 @@ startButton.addEventListener("click", async () => {
         event.data.type === "stopped" &&
         stopAcknowledged
       ) {
+
         workletStats = event.data.stats || null;
 
         const resolveStop = stopAcknowledged;
@@ -710,87 +1072,121 @@ startButton.addEventListener("click", async () => {
         }
 
         resolveStop();
+
       }
+
     };
 
     workletNode.port.postMessage("start");
 
     recording = true;
-    stopButton.disabled = false;
 
-    if (audioContext.sampleRate === TARGET_SAMPLE_RATE) {
-      statusText.textContent =
-        "Recording… Read the passage, then press Stop recording.";
-    } else {
-      statusText.textContent =
-        `Recording at ${audioContext.sampleRate} Hz, not the target 44,100 Hz. Check the diagnostics before using this file.`;
-    }
+    // Start the clock immediately after sending the start command.
+    recordingStartedAt = performance.now();
+
+    recordingIndicator.hidden = false;
+
+    statusText.textContent =
+      "Recording started. Get ready.";
+
+    startCountdown();
 
   } catch (error) {
+
     await cleanUpRecorder();
+
+    mainTask.hidden = true;
+    mainInstructions.hidden = false;
 
     statusText.textContent =
       "Could not start recording: " + error.message;
 
   } finally {
+
     starting = false;
+
     startButton.disabled = recording;
+
   }
+
 });
 
 
-stopButton.addEventListener("click", async () => {
-  if (!recording || !workletNode || !audioContext) return;
+// ============================================
+// AUTOMATIC STOP AND SAVE
+// ============================================
+
+async function finishRecording() {
+
+  if (!recording || !workletNode || !audioContext) {
+    return;
+  }
 
   const currentWorklet = workletNode;
   const sampleRate = audioContext.sampleRate;
 
   recording = false;
-  stopButton.disabled = true;
-  startButton.disabled = true;
 
-  statusText.textContent = "Finishing recording…";
+  recordingIndicator.hidden = true;
+
+  statusText.textContent =
+    "Finishing recording…";
 
   try {
+
     await new Promise((resolve, reject) => {
+
       stopAcknowledged = resolve;
 
       stopTimeout = setTimeout(() => {
+
         stopAcknowledged = null;
         stopTimeout = null;
 
         reject(new Error(
-          "The recorder did not confirm stopping. No file was saved; please try again."
+          "The recorder did not confirm stopping. Please try again."
         ));
+
       }, STOP_ACK_TIMEOUT_MS);
 
       currentWorklet.port.postMessage("stop");
+
     });
 
-    // The worklet's earlier audio messages are handled before its acknowledgement.
     const totalLength = chunks.reduce(
       (sum, chunk) => sum + chunk.length,
       0
     );
 
     if (totalLength === 0) {
-      throw new Error("No audio was captured. Please try again.");
+      throw new Error(
+        "No audio was captured. Please try again."
+      );
     }
 
     const samples = new Float32Array(totalLength);
+
     let offset = 0;
 
     for (const chunk of chunks) {
+
       samples.set(chunk, offset);
       offset += chunk.length;
+
     }
 
     await cleanUpRecorder();
 
-    const wav = encodeWav24BitMono(samples, sampleRate);
+    const wav = encodeWav24BitMono(
+      samples,
+      sampleRate
+    );
 
-    const rawLevels = measureFloatLevels(samples);
-    const wavLevels = await measureWav24BitLevels(wav);
+    const rawLevels =
+      measureFloatLevels(samples);
+
+    const wavLevels =
+      await measureWav24BitLevels(wav);
 
     displaySignalDiagnostics(
       workletStats,
@@ -802,46 +1198,91 @@ stopButton.addEventListener("click", async () => {
       URL.revokeObjectURL(recordingUrl);
     }
 
+    if (metadataUrl) {
+      URL.revokeObjectURL(metadataUrl);
+    }
+
     recordingUrl = URL.createObjectURL(wav);
 
     playback.src = recordingUrl;
     playback.hidden = false;
 
     downloadLink.href = recordingUrl;
-    downloadLink.download = "recording-test-24bit.wav";
-    downloadLink.textContent = "Download recording (24-bit WAV)";
-    downloadLink.hidden = false;
+    downloadLink.download =
+      "english-word-reading-24bit.wav";
+
+    const metadata = {
+
+      task: "English word reading",
+
+      sampleRate: sampleRate,
+
+      format: "Mono, 24-bit PCM WAV",
+
+      wordDurationMs: WORD_DURATION_MS,
+
+      countdownSeconds: COUNTDOWN_SECONDS,
+
+      recordingStartTime: new Date().toISOString(),
+
+      totalWords: mainWords.length,
+
+      words: wordTimingData
+
+    };
+
+    const metadataBlob = new Blob(
+      [JSON.stringify(metadata, null, 2)],
+      { type: "application/json" }
+    );
+
+    metadataUrl =
+      URL.createObjectURL(metadataBlob);
+
+    metadataDownload.href = metadataUrl;
+
+    metadataDownload.download =
+      "english-word-reading-timings.json";
+
+    results.hidden = false;
+
+    mainTask.hidden = true;
 
     statusText.textContent =
       `Recording ready: mono, 24-bit PCM WAV, ${sampleRate} Hz.`;
 
   } catch (error) {
+
     await cleanUpRecorder();
 
     statusText.textContent =
       "Could not prepare recording: " + error.message;
 
-  } finally {
-    recording = false;
-    startButton.disabled = false;
-    stopButton.disabled = true;
+    mainTask.hidden = true;
+    mainInstructions.hidden = false;
+
   }
-});
+
+}
 
 
 // ============================================
 // WAV ENCODING
-// Mono, signed 24-bit PCM.
 // ============================================
 
 function encodeWav24BitMono(samples, sampleRate) {
+
   const bytesPerSample = 3;
-  const dataSize = samples.length * bytesPerSample;
+
+  const dataSize =
+    samples.length * bytesPerSample;
+
   const padding = dataSize % 2;
 
-  // A standard RIFF WAV file has a 32-bit chunk-size field.
   if (dataSize > 0xFFFFFFFF - 36 - padding) {
-    throw new Error("The recording is too large for a standard WAV file.");
+    throw new Error(
+      "The recording is too large for a standard WAV file."
+    );
   }
 
   const buffer = new ArrayBuffer(
@@ -851,28 +1292,48 @@ function encodeWav24BitMono(samples, sampleRate) {
   const view = new DataView(buffer);
 
   function writeString(offset, text) {
+
     for (let i = 0; i < text.length; i++) {
-      view.setUint8(offset + i, text.charCodeAt(i));
+      view.setUint8(
+        offset + i,
+        text.charCodeAt(i)
+      );
     }
+
   }
 
   writeString(0, "RIFF");
-  view.setUint32(4, 36 + dataSize + padding, true);
+
+  view.setUint32(
+    4,
+    36 + dataSize + padding,
+    true
+  );
+
   writeString(8, "WAVE");
   writeString(12, "fmt ");
 
-  view.setUint32(16, 16, true);       // PCM format chunk size
-  view.setUint16(20, 1, true);        // Linear PCM
-  view.setUint16(22, 1, true);        // Mono
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * bytesPerSample, true);
-  view.setUint16(32, bytesPerSample, true); // Block alignment
-  view.setUint16(34, 24, true);             // Bits per sample
+
+  view.setUint32(
+    28,
+    sampleRate * bytesPerSample,
+    true
+  );
+
+  view.setUint16(32, bytesPerSample, true);
+  view.setUint16(34, 24, true);
 
   writeString(36, "data");
+
   view.setUint32(40, dataSize, true);
 
   for (let i = 0; i < samples.length; i++) {
+
     const rawSample = Number.isFinite(samples[i])
       ? samples[i]
       : 0;
@@ -888,28 +1349,35 @@ function encodeWav24BitMono(samples, sampleRate) {
         : sample * 8388607
     );
 
-    // Convert signed PCM to its 24-bit two's-complement representation.
     const value24 = signedValue < 0
       ? signedValue + 16777216
       : signedValue;
 
-    const byteOffset = 44 + i * bytesPerSample;
+    const byteOffset =
+      44 + i * bytesPerSample;
 
-    // 24-bit PCM is stored least-significant byte first.
-    view.setUint8(byteOffset, value24 & 0xFF);
+    view.setUint8(
+      byteOffset,
+      value24 & 0xFF
+    );
+
     view.setUint8(
       byteOffset + 1,
       (value24 >>> 8) & 0xFF
     );
+
     view.setUint8(
       byteOffset + 2,
       (value24 >>> 16) & 0xFF
     );
+
   }
 
-  return new Blob([buffer], {
-    type: "audio/wav"
-  });
+  return new Blob(
+    [buffer],
+    { type: "audio/wav" }
+  );
+
 }
 
 
@@ -918,8 +1386,17 @@ function encodeWav24BitMono(samples, sampleRate) {
 // ============================================
 
 window.addEventListener("pagehide", () => {
+
+  if (taskTimer !== null) {
+    clearTimeout(taskTimer);
+  }
+
   if (recordingUrl) {
     URL.revokeObjectURL(recordingUrl);
+  }
+
+  if (metadataUrl) {
+    URL.revokeObjectURL(metadataUrl);
   }
 
   if (stream) {
@@ -929,8 +1406,10 @@ window.addEventListener("pagehide", () => {
   if (audioContext && audioContext.state !== "closed") {
     audioContext.close().catch(() => {});
   }
+
 });
 
 </script>
+
 </body>
 </html>
