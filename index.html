@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -96,6 +97,45 @@
   .instructions {
     margin-bottom: 20px;
   }
+
+  .device-section {
+    margin: 28px 0;
+    padding: 20px;
+    background: #f0f4f8;
+    border-radius: 10px;
+  }
+
+  .device-section h3 {
+    margin-top: 0;
+  }
+
+  .instruction-image {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+    margin: 16px auto;
+    border-radius: 8px;
+    border: 1px solid #d9e2ec;
+  }
+
+  .image-caption {
+    text-align: center;
+    color: #52606d;
+    font-size: 14px;
+    margin-top: -8px;
+  }
+
+  .note {
+    background: #fff8e6;
+    border-left: 4px solid #d69e2e;
+    padding: 12px 16px;
+    margin: 18px 0;
+  }
+
+  .primary-action {
+    margin-top: 20px;
+  }
 </style>
 </head>
 
@@ -104,11 +144,163 @@
 
 <h1>English Pronunciation Study</h1>
 
+
+<!-- ================================== -->
+<!-- DEVICE VIBRATION INSTRUCTIONS     -->
+<!-- ================================== -->
+
+<section id="device-instructions">
+
+  <h2>Before you begin</h2>
+
+  <p>
+    Before starting the recording tasks, please adjust your phone's
+    vibration settings. This helps prevent vibrations from interfering
+    with the audio recording.
+  </p>
+
+  <p>
+    Follow the instructions for your device. If you are using another
+    type of phone, you can continue without changing these settings.
+  </p>
+
+
+  <!-- IPHONE INSTRUCTIONS -->
+
+  <div class="device-section">
+
+    <h3>iPhone</h3>
+
+    <p>
+      1. Open <strong>Settings</strong> and select
+      <strong>Accessibility</strong>.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="1A7C5774-855C-4376-AD6D-BF7292060CC8.jpeg"
+      alt="iPhone Settings menu with Accessibility highlighted"
+    >
+
+    <p class="image-caption">
+      Select Accessibility in Settings.
+    </p>
+
+    <p>
+      2. Scroll down to the <strong>Physical and Motor</strong>
+      section and select <strong>Touch</strong>.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="F7AEEFEF-3CCE-4CBB-8C0A-A87BBFE32F82.jpeg"
+      alt="iPhone Accessibility menu with Touch highlighted"
+    >
+
+    <p class="image-caption">
+      Select Touch under Physical and Motor.
+    </p>
+
+    <p>
+      3. Find <strong>Vibration</strong> and switch it off.
+      This setting disables vibration on your iPhone, including
+      vibration for calls and notifications.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="DCFB4A02-134A-40CB-8E0C-621D83108218.jpeg"
+      alt="iPhone Touch settings with the Vibration switch turned off"
+    >
+
+    <p class="image-caption">
+      Turn off Vibration.
+    </p>
+
+  </div>
+
+
+  <!-- SAMSUNG INSTRUCTIONS -->
+
+  <div class="device-section">
+
+    <h3>Samsung Galaxy</h3>
+
+    <p>
+      1. Open <strong>Settings</strong> and select
+      <strong>Sounds and vibration</strong>.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="2E4397BD-4E2C-4251-826C-530FC2510E6E.jpeg"
+      alt="Samsung Settings menu with Sounds and vibration highlighted"
+    >
+
+    <p class="image-caption">
+      Select Sounds and vibration.
+    </p>
+
+    <p>
+      2. Select <strong>Mute</strong> in the sound mode options.
+      Then open <strong>System vibration</strong>.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="85BC920C-B144-4A3D-846E-19EFABE7177A.jpeg"
+      alt="Samsung Sounds and vibration settings showing Mute and System vibration"
+    >
+
+    <p class="image-caption">
+      Select Mute and open System vibration.
+    </p>
+
+    <p>
+      3. Move the <strong>System vibration intensity</strong>
+      slider all the way to the left, to the minimum setting.
+    </p>
+
+    <img
+      class="instruction-image"
+      src="796D2594-4B0E-42BD-A8CC-F893FE1D9B51.jpeg"
+      alt="Samsung System vibration settings with the intensity slider at minimum"
+    >
+
+    <p class="image-caption">
+      Set the System vibration intensity slider to minimum.
+    </p>
+
+    <p>
+      You do not need to change the individual vibration feedback
+      options below the slider.
+    </p>
+
+  </div>
+
+
+  <div class="note">
+    <strong>Important:</strong> Please complete these settings
+    before starting the recording tasks. You can restore your
+    usual settings after finishing the experiment.
+  </div>
+
+  <button
+    id="device-continue"
+    type="button"
+    class="primary-action"
+  >
+    Continue to practice
+  </button>
+
+</section>
+
+
 <!-- ================================== -->
 <!-- PRACTICE SESSION                  -->
 <!-- ================================== -->
 
-<section id="practice-screen">
+<section id="practice-screen" hidden>
 
   <h2>Practice session</h2>
 
@@ -229,7 +421,7 @@
 
 
 <p id="status" role="status" aria-live="polite">
-  Complete the practice session to continue.
+  Please check your phone's vibration settings before continuing.
 </p>
 
 <div id="diagnostics" hidden></div>
@@ -299,6 +491,12 @@ const practiceWords = [
 // HTML ELEMENTS
 // ============================================
 
+const deviceInstructions =
+  document.getElementById("device-instructions");
+
+const deviceContinueButton =
+  document.getElementById("device-continue");
+
 const practiceScreen =
   document.getElementById("practice-screen");
 
@@ -349,6 +547,21 @@ const metadataDownload =
 
 const diagnostics =
   document.getElementById("diagnostics");
+
+
+// ============================================
+// DEVICE INSTRUCTIONS NAVIGATION
+// ============================================
+
+deviceContinueButton.addEventListener("click", () => {
+
+  deviceInstructions.hidden = true;
+  practiceScreen.hidden = false;
+
+  statusText.textContent =
+    "You can now complete the practice session.";
+
+});
 
 
 // ============================================
