@@ -304,8 +304,8 @@
   <div class="note">
     <strong>Important:</strong> Please complete these settings before
     starting the recording tasks. Disconnect your phone from its charger
-    and place it on a stable surface while recording. Do not touch or move it while 
-    recording. You can restore your usual settings after
+    and place it on a stable surface. Please do not touch or move your
+    phone while recording. You can restore your usual settings after
     finishing the experiment.
   </div>
 
@@ -416,6 +416,8 @@
 
   <p id="main-progress" aria-live="polite"></p>
 
+  <button id="skip-part-one" type="button">Skip this part</button>
+
 </section>
 
 
@@ -453,74 +455,79 @@
 
 <section id="reading-instructions" hidden>
 
-  <h2>Part II – Passage reading</h2>
+  <div id="reading-preparation">
+    <h2>Part II – Passage reading</h2>
 
-  <p>
-    You will read the entire passage below aloud, from beginning to end.
-    Read at your normal speaking speed and as naturally as possible.
-    If you make a mistake, simply continue reading.
-  </p>
+    <p>
+      You will read the entire passage below, from beginning to end.
+      Read at your normal speaking speed and as naturally as possible.
+      If you make a mistake, simply continue reading.
+    </p>
 
-  <p>
-    When you press <strong>Start reading</strong>, you will have
-    5 seconds to prepare. The recording will then start automatically.
-    The passage will remain visible throughout the task.
-  </p>
+    <p>
+      When you press <strong>Ready</strong>, the passage will appear.
+      You will have 5 seconds to prepare before the recording starts
+      automatically. The passage will remain visible throughout the task.
+    </p>
 
-  <p>
-    The recording will continue until you press
-    <strong>Finish recording</strong>.
-  </p>
+    <p>
+      The recording will continue until you press
+      <strong>Finish recording</strong>.
+    </p>
 
-  <div id="reading-passage">
-    <p>
-      They were walking along the narrow path when Matilda noticed a few
-      birds moving among the trees. Their soft singing filled the quiet air,
-      but apart from that, there was very little to see. She had expected
-      Miss Honey’s home to be different somehow, perhaps larger or more
-      welcoming.
-    </p>
-    <p>
-      “It’s just a farm worker’s cottage,” Miss Honey explained.
-      “You mustn’t expect too much of it. People often think that a home
-      tells you everything about the person who lives there, but that’s
-      not always true.”
-    </p>
-    <p>
-      Matilda looked at her with interest. “There is a question I’d like
-      to ask,” she said.
-    </p>
-    <p>“Of course. You can ask me anything you like.”</p>
-    <p>“How many books have you got in your home?”</p>
-    <p>“You will see.”</p>
-    <p>
-      Then they came to a green gate in the hedge. Miss Honey paused with
-      one hand on the gate, then opened it, leaving the gate open behind them.
-    </p>
-    <p>
-      The cottage was so small that it looked more like a doll’s house than
-      a real home. Its old red bricks had faded in the sun, and the windows
-      were so narrow that Matilda wondered how much light could possibly
-      enter the rooms. A few plants grew beside the path, while two pretty
-      windows looked out over a green spot.
-    </p>
-    <p>
-      “It’s not much to look at, but it’s where I live, and I’m quite happy
-      here. It’s the perfect place to sleep.”
-    </p>
-    <p><em>(Adapted from Roald Dahl – Matilda)</em></p>
+    <button id="reading-ready" type="button">Ready</button>
   </div>
 
-  <button id="reading-start" type="button">Start reading</button>
-  <p id="reading-countdown" aria-live="polite"></p>
-  <p id="reading-recording-indicator" hidden>● Recording</p>
-  <button id="reading-finish" type="button" disabled>Finish recording</button>
+  <div id="reading-task" hidden>
+    <div id="reading-passage">
+      <p>
+        They were walking along the narrow path when Matilda noticed a few
+        birds moving among the trees. Their soft singing filled the quiet air,
+        but apart from that, there was very little to see. She had expected
+        Miss Honey’s home to be different somehow, perhaps larger or more
+        welcoming.
+      </p>
+      <p>
+        “It’s just a farm worker’s cottage,” Miss Honey explained.
+        “You mustn’t expect too much of it. People often think that a home
+        tells you everything about the person who lives there, but that’s
+        not always true.”
+      </p>
+      <p>
+        Matilda looked at her with interest. “There is a question I’d like
+        to ask,” she said.
+      </p>
+      <p>“Of course. You can ask me anything you like.”</p>
+      <p>“How many books have you got in your home?”</p>
+      <p>“You will see.”</p>
+      <p>
+        Then they came to a green gate in the hedge. Miss Honey paused with
+        one hand on the gate, then opened it, leaving the gate open behind them.
+      </p>
+      <p>
+        The cottage was so small that it looked more like a doll’s house than
+        a real home. Its old red bricks had faded in the sun, and the windows
+        were so narrow that Matilda wondered how much light could possibly
+        enter the rooms. A few plants grew beside the path, while two pretty
+        windows looked out over a green spot.
+      </p>
+      <p>
+        “It’s not much to look at, but it’s where I live, and I’m quite happy
+        here. It’s the perfect place to sleep.”
+      </p>
+      <p><em>(Adapted from Roald Dahl – Matilda)</em></p>
+    </div>
 
-  <div id="reading-results" hidden>
-    <h3>Recording complete</h3>
-    <p>You can listen to your recording below.</p>
-    <audio id="reading-playback" controls></audio>
-    <p><a id="reading-download">Download passage recording (24-bit WAV)</a></p>
+    <p id="reading-countdown" aria-live="polite"></p>
+    <p id="reading-recording-indicator" hidden>● Recording</p>
+    <button id="reading-finish" type="button" disabled>Finish recording</button>
+
+    <div id="reading-results" hidden>
+      <h3>Recording complete</h3>
+      <p>You can listen to your recording below.</p>
+      <audio id="reading-playback" controls></audio>
+      <p><a id="reading-download">Download passage recording (24-bit WAV)</a></p>
+    </div>
   </div>
 
 </section>
@@ -630,6 +637,9 @@ const mainDisplay =
 const mainProgress =
   document.getElementById("main-progress");
 
+const skipPartOneButton =
+  document.getElementById("skip-part-one");
+
 const startButton =
   document.getElementById("start");
 
@@ -663,8 +673,14 @@ const continueToReadingButton =
 const readingInstructions =
   document.getElementById("reading-instructions");
 
-const readingStartButton =
-  document.getElementById("reading-start");
+const readingPreparation =
+  document.getElementById("reading-preparation");
+
+const readingReadyButton =
+  document.getElementById("reading-ready");
+
+const readingTask =
+  document.getElementById("reading-task");
 
 const readingCountdown =
   document.getElementById("reading-countdown");
@@ -1174,6 +1190,7 @@ function displaySignalDiagnostics(
 function startWordSequence() {
 
   mainTask.hidden = false;
+  skipPartOneButton.disabled = false;
 
   recordingIndicator.hidden = false;
 
@@ -1473,6 +1490,32 @@ startButton.addEventListener("click", async () => {
 
 
 // ============================================
+// SKIP PART I (TESTING ONLY)
+// ============================================
+
+skipPartOneButton.addEventListener("click", () => {
+
+  if (!recording) return;
+
+  // Cancel the pending word/countdown timer and finish the current
+  // recording immediately, allowing navigation to Part II.
+  if (taskTimer !== null) {
+    clearTimeout(taskTimer);
+    taskTimer = null;
+  }
+
+  skipPartOneButton.disabled = true;
+  mainDisplay.textContent = "";
+  mainProgress.textContent = "Part I skipped.";
+  statusText.textContent =
+    "Part I skipped. Preparing your recording…";
+
+  finishRecording();
+
+});
+
+
+// ============================================
 // AUTOMATIC STOP AND SAVE
 // ============================================
 
@@ -1481,6 +1524,8 @@ async function finishRecording() {
   if (!recording || !workletNode || !audioContext) {
     return;
   }
+
+  skipPartOneButton.disabled = true;
 
   const currentWorklet = workletNode;
   const sampleRate = audioContext.sampleRate;
@@ -1634,21 +1679,64 @@ continueToReadingButton.addEventListener("click", () => {
 
   results.hidden = true;
   readingInstructions.hidden = false;
+  readingPreparation.hidden = false;
+  readingTask.hidden = true;
+  readingResults.hidden = true;
 
   statusText.textContent =
-    "You can now complete Part II – passage reading.";
+    "Read the instructions. Press Ready when you are ready to begin.";
 
 });
 
 
-readingStartButton.addEventListener("click", async () => {
+function startReadingCountdown() {
+
+  let countdownValue = 5;
+  readingCountdown.textContent = countdownValue.toString();
+
+  function nextReadingCount() {
+
+    countdownValue--;
+
+    if (countdownValue > 0) {
+
+      readingCountdown.textContent = countdownValue.toString();
+      readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+
+    } else {
+
+      readingCountdown.textContent = "";
+      readingCountdownTimer = null;
+
+      // Start recording five seconds after the passage becomes visible.
+      workletNode.port.postMessage("start");
+
+      recording = true;
+      starting = false;
+
+      readingRecordingIndicator.hidden = false;
+      readingFinishButton.disabled = false;
+
+      statusText.textContent =
+        "Recording… Read the entire passage, then press Finish recording.";
+
+    }
+
+  }
+
+  readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+
+}
+
+
+readingReadyButton.addEventListener("click", async () => {
 
   if (starting || recording || readingAttemptStarted) return;
 
   starting = true;
   readingAttemptStarted = true;
 
-  readingStartButton.disabled = true;
+  readingReadyButton.disabled = true;
   readingFinishButton.disabled = true;
   readingResults.hidden = true;
   readingRecordingIndicator.hidden = true;
@@ -1788,55 +1876,17 @@ readingStartButton.addEventListener("click", async () => {
 
     };
 
-    // Microphone/worklet setup is complete. The actual recording starts
-    // only after the full five-second preparation countdown.
-    let countdownValue = 5;
-
-    readingCountdown.textContent =
-      countdownValue.toString();
+    // Only reveal the passage once the microphone and recorder are ready.
+    // The five-second countdown then starts as the passage becomes visible.
+    readingPreparation.hidden = true;
+    readingTask.hidden = false;
 
     statusText.textContent =
-      "Get ready to read the passage…";
+      "Get ready to read. Recording starts in five seconds.";
 
-    function nextReadingCount() {
-
-      countdownValue--;
-
-      if (countdownValue > 0) {
-
-        readingCountdown.textContent =
-          countdownValue.toString();
-
-        readingCountdownTimer = window.setTimeout(
-          nextReadingCount,
-          1000
-        );
-
-      } else {
-
-        readingCountdown.textContent = "";
-        readingCountdownTimer = null;
-
-        // Recording begins immediately after the fifth second.
-        workletNode.port.postMessage("start");
-
-        recording = true;
-        starting = false;
-
-        readingRecordingIndicator.hidden = false;
-        readingFinishButton.disabled = false;
-
-        statusText.textContent =
-          "Recording… Read the entire passage, then press Finish recording.";
-
-      }
-
-    }
-
-    readingCountdownTimer = window.setTimeout(
-      nextReadingCount,
-      1000
-    );
+    window.requestAnimationFrame(() => {
+      startReadingCountdown();
+    });
 
   } catch (error) {
 
@@ -1850,13 +1900,15 @@ readingStartButton.addEventListener("click", async () => {
     starting = false;
     readingAttemptStarted = false;
 
-    readingCountdown.textContent = "";
+    readingPreparation.hidden = false;
+    readingTask.hidden = true;
+    readingReadyButton.disabled = false;
     readingRecordingIndicator.hidden = true;
     readingFinishButton.disabled = true;
-    readingStartButton.disabled = false;
+    readingCountdown.textContent = "";
 
     statusText.textContent =
-      "Could not start Part II recording: " + error.message;
+      "Could not prepare Part II recording: " + error.message;
 
   }
 
@@ -1876,7 +1928,6 @@ readingFinishButton.addEventListener("click", async () => {
 
   readingRecordingIndicator.hidden = true;
   readingFinishButton.disabled = true;
-  readingStartButton.disabled = true;
 
   statusText.textContent =
     "Finishing passage recording…";
