@@ -146,10 +146,15 @@
   }
 
   #reading-countdown {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     text-align: center;
     margin: 20px 0;
+    padding: 16px;
+    background: #fff8e6;
+    border: 2px solid #d69e2e;
+    border-radius: 8px;
+    min-height: 48px;
   }
 
   #reading-recording-indicator {
@@ -1697,7 +1702,12 @@ continueToReadingButton.addEventListener("click", () => {
 function startReadingCountdown() {
 
   let countdownValue = 5;
-  readingCountdown.textContent = countdownValue.toString();
+
+  readingCountdown.textContent =
+    `Recording starts in ${countdownValue}…`;
+
+  statusText.textContent =
+    "Microphone ready. The recording will start automatically.";
 
   function nextReadingCount() {
 
@@ -1705,12 +1715,15 @@ function startReadingCountdown() {
 
     if (countdownValue > 0) {
 
-      readingCountdown.textContent = countdownValue.toString();
-      readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+      readingCountdown.textContent =
+        `Recording starts in ${countdownValue}…`;
+
+      readingCountdownTimer =
+        window.setTimeout(nextReadingCount, 1000);
 
     } else {
 
-      readingCountdown.textContent = "";
+      readingCountdown.textContent = "Recording started.";
       readingCountdownTimer = null;
 
       // Start recording five seconds after the passage becomes visible.
@@ -1723,13 +1736,14 @@ function startReadingCountdown() {
       readingFinishButton.disabled = false;
 
       statusText.textContent =
-        "Recording… Read the entire passage, then press Finish recording.";
+        "Recording started. Read the entire passage, then press Finish recording.";
 
     }
 
   }
 
-  readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+  readingCountdownTimer =
+    window.setTimeout(nextReadingCount, 1000);
 
 }
 
@@ -1752,7 +1766,7 @@ readingReadyButton.addEventListener("click", async () => {
   diagnostics.hidden = true;
 
   statusText.textContent =
-    "Requesting microphone access…";
+    "Please allow microphone access. The passage and countdown will appear when the microphone is ready.";
 
   try {
 
