@@ -162,6 +162,145 @@
     font-weight: bold;
   }
 
+
+  /* ============================================
+     PART III – SPEECH EVALUATION
+     ============================================ */
+
+  .speech-rating-instructions {
+    margin-bottom: 22px;
+  }
+
+  .speech-quiz-question,
+  .speaker-rating-item {
+    background: #f0f4f8;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .speech-quiz-question fieldset,
+  .speaker-rating-item fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+
+  .speech-quiz-question legend,
+  .speaker-rating-item legend {
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+
+  .speech-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 10px 0;
+    cursor: pointer;
+  }
+
+  .speech-choice input {
+    margin-top: 5px;
+    flex: 0 0 auto;
+  }
+
+  .quiz-feedback {
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  .quiz-feedback.correct {
+    color: #216e39;
+  }
+
+  .quiz-feedback.incorrect {
+    color: #8a3b12;
+  }
+
+  #speaker-audio-section {
+    background: #f0f4f8;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+
+  #speaker-audio-section h3 {
+    margin-top: 0;
+  }
+
+  #speaker-ratings {
+    margin-top: 24px;
+  }
+
+  .rating-options {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .rating-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 52px;
+    padding: 8px 4px;
+    background: white;
+    border: 1px solid #cbd5e0;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .rating-option input {
+    margin: 0;
+  }
+
+  .rating-option:has(input:checked) {
+    border: 2px solid #243b53;
+    background: #e6eef6;
+  }
+
+  .rating-endpoints {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #52606d;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .speech-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .speech-navigation button {
+    margin: 0;
+  }
+
+  #speech-validation-message {
+    color: #8a3b12;
+    font-weight: bold;
+    margin-top: 12px;
+  }
+
+  @media (max-width: 420px) {
+    .rating-options {
+      gap: 4px;
+    }
+
+    .rating-option {
+      padding: 8px 2px;
+      font-size: 14px;
+    }
+  }
+
 </style>
 </head>
 
@@ -538,11 +677,128 @@
       <p>You can listen to your recording below.</p>
       <audio id="reading-playback" controls></audio>
       <p><a id="reading-download">Download passage recording (24-bit WAV)</a></p>
+      <button id="continue-to-speech-evaluation" type="button">
+        Continue to Part III
+      </button>
     </div>
   </div>
 
 </section>
 
+
+
+
+<!-- ================================== -->
+<!-- PART III – SPEECH EVALUATION       -->
+<!-- ================================== -->
+
+<section id="speech-evaluation" hidden>
+
+  <!-- Introductory instructions -->
+  <div id="speech-intro">
+    <h2>Part III – Speech Evaluation</h2>
+
+    <div class="speech-rating-instructions">
+      <p>You will listen to recordings of three speakers. After listening to each speaker, rate them using the scales provided below.</p>
+
+      <p>
+        For each item, select a number from <strong>0, 2, 4, 6, 8, or 10</strong>,
+        where <strong>0 indicates the lowest rating and 10 indicates the highest rating</strong>
+        for the quality being assessed. The words accompanying each scale indicate the
+        quality you are rating. For example, for Educated, 10 indicates that the speaker
+        sounds highly educated; for Friendly, 0 indicates that the speaker doesn’t sound
+        friendly at all.
+      </p>
+
+      <p>
+        Please base your ratings on your overall impression of each speaker. There are
+        no right or wrong answers; we are interested in your personal opinions.
+      </p>
+    </div>
+
+    <button id="speech-start-quiz" type="button">Continue</button>
+  </div>
+
+  <!-- Rating-scale comprehension check -->
+  <div id="speech-quiz" hidden>
+    <h2>Practice – Understanding the Rating Scale</h2>
+    <p>Before you start, please answer the following two questions to check that you understand the rating scale.</p>
+
+    <div class="speech-quiz-question">
+      <fieldset id="quiz-question-one">
+        <legend>1. What does a score of 10 mean for Educated?</legend>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-one" value="A">
+          <span>A. The speaker sounds very educated.</span>
+        </label>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-one" value="B">
+          <span>B. The speaker doesn't sound educated.</span>
+        </label>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-one" value="C">
+          <span>C. The speaker sounds educated in some ways.</span>
+        </label>
+      </fieldset>
+      <p id="quiz-one-feedback" class="quiz-feedback" aria-live="polite"></p>
+    </div>
+
+    <div class="speech-quiz-question">
+      <fieldset id="quiz-question-two">
+        <legend>2. What does a score of 0 mean for Friendly?</legend>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-two" value="A">
+          <span>A. The speaker is very friendly.</span>
+        </label>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-two" value="B">
+          <span>B. The speaker is not friendly at all.</span>
+        </label>
+        <label class="speech-choice">
+          <input type="radio" name="quiz-two" value="C">
+          <span>C. The speaker is friendly to some people.</span>
+        </label>
+      </fieldset>
+      <p id="quiz-two-feedback" class="quiz-feedback" aria-live="polite"></p>
+    </div>
+
+    <button id="speech-quiz-continue" type="button" disabled>
+      Start Speech Evaluation
+    </button>
+  </div>
+
+  <!-- Speaker rating screens are populated by JavaScript. -->
+  <div id="speaker-evaluation" hidden>
+    <h2 id="speaker-heading">Speaker 1</h2>
+
+    <div id="speaker-audio-section">
+      <h3>Listen to the recording</h3>
+      <audio id="speaker-audio" controls controlsList="nodownload">
+        Your browser does not support audio playback.
+      </audio>
+    </div>
+
+    <p><strong>The speaker is:</strong></p>
+    <div id="speaker-ratings"></div>
+
+    <p id="speech-validation-message" role="alert" aria-live="polite" hidden>
+      Please rate the speaker on all 12 items before continuing.
+    </p>
+
+    <div class="speech-navigation">
+      <button id="speaker-back" type="button" hidden>Previous speaker</button>
+      <button id="speaker-next" type="button">Next speaker</button>
+    </div>
+  </div>
+
+  <!-- Completion screen -->
+  <div id="speech-complete" hidden>
+    <h2>Speech Evaluation complete</h2>
+    <p>Thank you. You have completed all three parts of the experiment.</p>
+    <p>Your responses have been recorded on this page. Please wait for further instructions.</p>
+  </div>
+
+</section>
 
 <p id="status" role="status" aria-live="polite">
   Please check your phone's vibration settings before continuing.
@@ -2158,6 +2414,369 @@ function encodeWav24BitMono(samples, sampleRate) {
   );
 
 }
+
+
+
+// ============================================
+// PART III – SPEECH EVALUATION
+// ============================================
+
+// These responses remain in page memory for now. The unified Google Drive
+// submission will be added after all experiment parts have been completed.
+const speechEvaluationAdjectives = [
+  "Educated",
+  "Upper class",
+  "Organised",
+  "Advantaged",
+  "Friendly",
+  "Likeable",
+  "Honest",
+  "Warm",
+  "Strong",
+  "Talkative",
+  "Confident",
+  "Enthusiastic"
+];
+
+const speechRatingValues = [0, 2, 4, 6, 8, 10];
+
+const speechSpeakers = [
+  {
+    label: "Speaker 1",
+    audio: "audio/speech-evaluation/Speaker%201.mp3"
+  },
+  {
+    label: "Speaker 2",
+    audio: "audio/speech-evaluation/Speaker%202.mp3"
+  },
+  {
+    label: "Speaker 3",
+    audio: "audio/speech-evaluation/Speaker%203.mp3"
+  }
+];
+
+// One object per speaker; each contains the 12 adjective ratings.
+const speechEvaluationResponses = {
+  speaker1: {},
+  speaker2: {},
+  speaker3: {}
+};
+
+let currentSpeechSpeakerIndex = 0;
+let quizQuestionOneCorrect = false;
+let quizQuestionTwoCorrect = false;
+
+const continueToSpeechEvaluationButton =
+  document.getElementById("continue-to-speech-evaluation");
+
+const speechEvaluationSection =
+  document.getElementById("speech-evaluation");
+
+const speechIntro =
+  document.getElementById("speech-intro");
+
+const speechQuiz =
+  document.getElementById("speech-quiz");
+
+const speechStartQuizButton =
+  document.getElementById("speech-start-quiz");
+
+const speechQuizContinueButton =
+  document.getElementById("speech-quiz-continue");
+
+const quizOneFeedback =
+  document.getElementById("quiz-one-feedback");
+
+const quizTwoFeedback =
+  document.getElementById("quiz-two-feedback");
+
+const speakerEvaluation =
+  document.getElementById("speaker-evaluation");
+
+const speakerHeading =
+  document.getElementById("speaker-heading");
+
+const speakerAudio =
+  document.getElementById("speaker-audio");
+
+const speakerRatings =
+  document.getElementById("speaker-ratings");
+
+const speakerBackButton =
+  document.getElementById("speaker-back");
+
+const speakerNextButton =
+  document.getElementById("speaker-next");
+
+const speechValidationMessage =
+  document.getElementById("speech-validation-message");
+
+const speechComplete =
+  document.getElementById("speech-complete");
+
+
+function updateSpeechQuizContinueButton() {
+  speechQuizContinueButton.disabled =
+    !(quizQuestionOneCorrect && quizQuestionTwoCorrect);
+}
+
+
+function checkSpeechQuizAnswer(questionNumber, selectedAnswer) {
+  if (questionNumber === 1) {
+    if (quizQuestionOneCorrect) return;
+
+    if (selectedAnswer === "A") {
+      quizQuestionOneCorrect = true;
+      quizOneFeedback.textContent =
+        "Correct! A score of 10 means the speaker sounds very educated.";
+      quizOneFeedback.className = "quiz-feedback correct";
+
+      document.querySelectorAll('input[name="quiz-one"]').forEach(input => {
+        input.disabled = true;
+      });
+    } else {
+      quizOneFeedback.textContent =
+        "Not quite. A score of 10 is the highest rating on the scale.";
+      quizOneFeedback.className = "quiz-feedback incorrect";
+    }
+  }
+
+  if (questionNumber === 2) {
+    if (quizQuestionTwoCorrect) return;
+
+    if (selectedAnswer === "B") {
+      quizQuestionTwoCorrect = true;
+      quizTwoFeedback.textContent =
+        "Correct! A score of 0 means the speaker is not friendly at all.";
+      quizTwoFeedback.className = "quiz-feedback correct";
+
+      document.querySelectorAll('input[name="quiz-two"]').forEach(input => {
+        input.disabled = true;
+      });
+    } else {
+      quizTwoFeedback.textContent =
+        "Not quite. A score of 0 is the lowest rating on the scale.";
+      quizTwoFeedback.className = "quiz-feedback incorrect";
+    }
+  }
+
+  updateSpeechQuizContinueButton();
+}
+
+
+document.querySelectorAll('input[name="quiz-one"]').forEach(input => {
+  input.addEventListener("change", () => {
+    checkSpeechQuizAnswer(1, input.value);
+  });
+});
+
+document.querySelectorAll('input[name="quiz-two"]').forEach(input => {
+  input.addEventListener("change", () => {
+    checkSpeechQuizAnswer(2, input.value);
+  });
+});
+
+
+continueToSpeechEvaluationButton.addEventListener("click", () => {
+  readingInstructions.hidden = true;
+  speechEvaluationSection.hidden = false;
+  speechIntro.hidden = false;
+  speechQuiz.hidden = true;
+  speakerEvaluation.hidden = true;
+  speechComplete.hidden = true;
+
+  statusText.textContent =
+    "Please read the instructions for Part III.";
+  speechEvaluationSection.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+
+speechStartQuizButton.addEventListener("click", () => {
+  speechIntro.hidden = true;
+  speechQuiz.hidden = false;
+  statusText.textContent =
+    "Please answer both questions correctly to continue.";
+});
+
+
+speechQuizContinueButton.addEventListener("click", () => {
+  if (!(quizQuestionOneCorrect && quizQuestionTwoCorrect)) return;
+
+  speechQuiz.hidden = true;
+  currentSpeechSpeakerIndex = 0;
+  showSpeechSpeaker(currentSpeechSpeakerIndex);
+
+  statusText.textContent =
+    "You are ready to start the Speech Evaluation!";
+});
+
+
+function adjectiveKey(adjective) {
+  return adjective
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+
+function saveCurrentSpeechSpeakerRatings() {
+  const speakerKey = `speaker${currentSpeechSpeakerIndex + 1}`;
+
+  speechEvaluationAdjectives.forEach(adjective => {
+    const key = adjectiveKey(adjective);
+    const selected = speakerRatings.querySelector(
+      `input[name="${speakerKey}_${key}"]:checked`
+    );
+
+    if (selected) {
+      speechEvaluationResponses[speakerKey][key] =
+        Number(selected.value);
+    }
+  });
+}
+
+
+function renderSpeechSpeakerRatings(speakerNumber) {
+  const speakerKey = `speaker${speakerNumber}`;
+  const savedRatings = speechEvaluationResponses[speakerKey];
+
+  speakerRatings.innerHTML = speechEvaluationAdjectives.map((adjective, index) => {
+    const key = adjectiveKey(adjective);
+
+    const options = speechRatingValues.map(value => {
+      const checked = savedRatings[key] === value ? "checked" : "";
+
+      return `
+        <label class="rating-option">
+          <input
+            type="radio"
+            name="${speakerKey}_${key}"
+            value="${value}"
+            ${checked}
+            required
+          >
+          <span>${value}</span>
+        </label>
+      `;
+    }).join("");
+
+    return `
+      <div class="speaker-rating-item">
+        <fieldset>
+          <legend>${index + 1}. ${escapeHtml(adjective)}</legend>
+          <div class="rating-options">
+            ${options}
+          </div>
+          <div class="rating-endpoints" aria-hidden="true">
+            <span>Lowest rating</span>
+            <span>Highest rating</span>
+          </div>
+        </fieldset>
+      </div>
+    `;
+  }).join("");
+}
+
+
+function showSpeechSpeaker(index) {
+  currentSpeechSpeakerIndex = index;
+
+  const speaker = speechSpeakers[index];
+  const speakerNumber = index + 1;
+
+  speechIntro.hidden = true;
+  speechQuiz.hidden = true;
+  speechComplete.hidden = true;
+  speakerEvaluation.hidden = false;
+
+  speakerHeading.textContent = speaker.label;
+
+  // The visible player is labelled only by speaker number. The neutral
+  // repository filename does not disclose the accent assignment.
+  speakerAudio.pause();
+  speakerAudio.src = speaker.audio;
+  speakerAudio.load();
+
+  renderSpeechSpeakerRatings(speakerNumber);
+
+  speakerBackButton.hidden = index === 0;
+  speakerNextButton.textContent =
+    index === speechSpeakers.length - 1
+      ? "Finish Speech Evaluation"
+      : "Next speaker";
+
+  speechValidationMessage.hidden = true;
+
+  statusText.textContent =
+    `Listen to ${speaker.label} and rate the speaker on all 12 items.`;
+
+  speechEvaluationSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+speakerBackButton.addEventListener("click", () => {
+  if (currentSpeechSpeakerIndex <= 0) return;
+
+  saveCurrentSpeechSpeakerRatings();
+  showSpeechSpeaker(currentSpeechSpeakerIndex - 1);
+});
+
+
+speakerNextButton.addEventListener("click", () => {
+  saveCurrentSpeechSpeakerRatings();
+
+  const speakerKey = `speaker${currentSpeechSpeakerIndex + 1}`;
+  const answeredCount = speechEvaluationAdjectives.filter(adjective => {
+    const key = adjectiveKey(adjective);
+    return Object.prototype.hasOwnProperty.call(
+      speechEvaluationResponses[speakerKey],
+      key
+    );
+  }).length;
+
+  if (answeredCount !== speechEvaluationAdjectives.length) {
+    speechValidationMessage.hidden = false;
+
+    const firstUnanswered = speechRatingValues.length
+      ? speechRatingValues
+      : [];
+
+    const unansweredFieldset = Array.from(
+      speakerRatings.querySelectorAll("fieldset")
+    ).find(fieldset => !fieldset.querySelector('input[type="radio"]:checked'));
+
+    if (unansweredFieldset) {
+      unansweredFieldset.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }
+
+    return;
+  }
+
+  speechValidationMessage.hidden = true;
+
+  if (currentSpeechSpeakerIndex < speechSpeakers.length - 1) {
+    showSpeechSpeaker(currentSpeechSpeakerIndex + 1);
+  } else {
+    speakerAudio.pause();
+    speakerEvaluation.hidden = true;
+    speechComplete.hidden = false;
+
+    statusText.textContent =
+      "Part III complete. Thank you for taking part in the experiment.";
+
+    // This object will be included in the unified Google Drive submission
+    // when the data-collection system is implemented.
+    window.speechEvaluationData = speechEvaluationResponses;
+
+    speechEvaluationSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+});
 
 
 // ============================================
