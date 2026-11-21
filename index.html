@@ -301,6 +301,22 @@
     }
   }
 
+
+/* Part IV questionnaire */
+#questionnaire-section .q-item{background:#f0f4f8;border-radius:8px;padding:16px;margin:16px 0}
+#questionnaire-section fieldset{border:0;padding:0;margin:0;min-width:0}
+#questionnaire-section legend{font-weight:bold;margin-bottom:10px}
+#questionnaire-section .q-hint{color:#52606d;font-size:14px;margin:-3px 0 12px}
+#questionnaire-section .q-choice{display:flex;align-items:flex-start;gap:10px;margin:10px 0;cursor:pointer}
+#questionnaire-section .q-choice input{margin-top:5px;flex:0 0 auto}
+#questionnaire-section .q-choice span{flex:1}
+#questionnaire-section input[type=text]{box-sizing:border-box;width:100%;max-width:420px;padding:10px;border:1px solid #9fb3c8;border-radius:6px;font:inherit}
+#questionnaire-section .q-followup{margin:12px 0 4px 28px;padding:12px;background:white;border-left:3px solid #9fb3c8;border-radius:4px}
+#questionnaire-section .q-followup[hidden]{display:none}
+#questionnaire-section h3{margin-top:30px;padding-bottom:6px;border-bottom:1px solid #d9e2ec}
+#questionnaire-validation{color:#8a3b12;font-weight:bold}
+#questionnaire-section .frequency-row{background:white;padding:12px;border-radius:7px;margin:12px 0}
+
 </style>
 </head>
 
@@ -798,8 +814,24 @@
   <div id="speech-complete" hidden>
     <h2>Speech Evaluation complete</h2>
     <p>Thank you for completing this section. Please proceed to the final part of the experiment: a short questionnaire.</p>
+    <button id="continue-to-questionnaire" type="button">Continue to questionnaire</button>
   </div>
 
+</section>
+
+
+<section id="questionnaire-section" hidden>
+  <h2>Part IV – English Pronunciation and Language Experience</h2>
+  <p>The following questions concern your experience with English and your views on English pronunciation. There are no right or wrong answers. Please select the answer that best reflects your opinions or experience.</p>
+  <form id="questionnaire-form" novalidate>
+    <div id="questionnaire-content"></div>
+    <p id="questionnaire-validation" role="alert" hidden>Please answer all required questions before submitting the questionnaire.</p>
+    <button type="submit">Submit questionnaire</button>
+  </form>
+  <div id="questionnaire-thanks" hidden>
+    <h2>Thank you!</h2>
+    <p>You have completed the questionnaire and the experiment.</p>
+  </div>
 </section>
 
 <p id="status" role="status" aria-live="polite">
@@ -2789,6 +2821,136 @@ speakerNextButton.addEventListener("click", () => {
 
 
 // ============================================
+
+// ============================================
+// PART IV – ENGLISH PRONUNCIATION QUESTIONNAIRE
+// ============================================
+(() => {
+  const section = document.getElementById("questionnaire-section");
+  const form = document.getElementById("questionnaire-form");
+  const content = document.getElementById("questionnaire-content");
+  const validation = document.getElementById("questionnaire-validation");
+  const thanks = document.getElementById("questionnaire-thanks");
+  const continueButton = document.getElementById("continue-to-questionnaire");
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function radio(name,title,options,hint=""){
+    return '<div class="q-item"><fieldset><legend>'+escapeHTML(title)+'</legend>'+
+      (hint?'<p class="q-hint">'+escapeHTML(hint)+'</p>':"")+
+      options.map((option,i)=>{const value=typeof option==="string"?option:option.value;const label=typeof option==="string"?option:option.label;const id=name+"-"+i;return '<label class="q-choice" for="'+id+'"><input id="'+id+'" type="radio" name="'+name+'" value="'+escapeHTML(value)+'"><span>'+escapeHTML(label)+'</span></label>';}).join("")+
+      '</fieldset></div>';
+  }
+  function checks(name,title,options,hint=""){
+    return '<div class="q-item"><fieldset><legend>'+escapeHTML(title)+'</legend>'+
+      (hint?'<p class="q-hint">'+escapeHTML(hint)+'</p>':"")+
+      options.map((value,i)=>'<label class="q-choice" for="'+name+'-'+i+'"><input id="'+name+'-'+i+'" type="checkbox" name="'+name+'" value="'+escapeHTML(value)+'"><span>'+escapeHTML(value)+'</span></label>').join("")+
+      '</fieldset></div>';
+  }
+  function textFollow(id,name,label){
+    return '<div class="q-followup" id="'+id+'" hidden><label for="'+id+'-input">'+escapeHTML(label)+'</label><input id="'+id+'-input" name="'+name+'" type="text" disabled></div>';
+  }
+  const likert=["Strongly disagree","Disagree","Neither agree nor disagree","Agree","Strongly agree"];
+  const p=[];
+  p.push("<h3>Section I: About You and Your English Learning Background</h3>");
+  p.push(radio("origin_area","1. Where are you from?",["From a rural area","From an urban area"]));
+  p.push(radio("age_band_2027","2. How old are you? (in 2027)",["14–19","20–30","31–47","48–63","64+"]));
+  p.push(checks("learning_reasons","3. Why are you learning English?",["For work or professional purposes","For my studies or academic purposes","For travelling","For personal interest or as a hobby","To communicate with people from other countries","Other"],"Select all that apply.")+textFollow("reason-other","learning_reasons_other","Please specify:"));
+  p.push(checks("learning_methods","4. How have you learned English so far?",["Through formal education (school or university)","Through private lessons or language courses","Through language-learning applications or online platforms","Through immersion in an English-speaking environment","Through films, TV series, or online videos","Through books, podcasts, or other media","Through independent study","Other"],"Select all that apply.")+textFollow("method-other","learning_methods_other","Please specify:"));
+  p.push(radio("english_study_duration","5. For how long have you been studying English?",["Less than 6 months","6 months to 1 year","1–2 years","3–5 years","6–10 years","More than 10 years"]));
+  p.push(radio("official_test","6. Have you ever taken an official English language proficiency test (e.g. Cambridge English, IELTS, TOEFL, or TOEIC)?",["Yes","No"]));
+  p.push('<div class="q-item" id="test-details" hidden><fieldset><legend>If yes, please indicate which test(s) you took.</legend>'+["Cambridge English","IELTS","TOEFL","TOEIC","Other"].map((v,i)=>'<label class="q-choice"><input type="checkbox" name="tests_taken" value="'+v+'"><span>'+v+'</span></label>').join("")+'</fieldset>'+textFollow("test-other","test_other_name","Please specify the test:")+textFollow("test-score","test_score_level","Please indicate your score or proficiency level:")+'</div>');
+  const levels=[
+    ["A1 – Beginner","I can communicate using familiar everyday expressions and very basic phrases. I can introduce myself and others and ask and answer simple questions."],
+    ["A2 – Elementary","I can communicate using frequently used expressions in everyday situations. I can interact in simple and direct exchanges of information and describe things."],
+    ["B1 – Intermediate","I can understand information about familiar topics. I can communicate in most situations when travelling in an English-speaking area."],
+    ["B2 – Upper-intermediate","I can understand the main ideas of complex texts. I can interact with some fluency and communicate easily. I can write clear, detailed texts."],
+    ["C1 – Advanced","I can understand a wide range of long, complex texts. I can interact and express myself fluently and spontaneously."],
+    ["C2 – Proficient","I can easily understand almost everything I hear or read. I can express myself fluently and spontaneously with precision in complex situations."]
+  ].map(([value,description])=>({value,label:value+": "+description}));
+  p.push(radio("current_level","7. How would you describe your current overall level of English?",levels,"Select the description that best matches your current ability."));
+  p.push(radio("english_country_residence","8. Have you ever lived in an English-speaking country (e.g. the UK, the USA, Canada, Australia or New Zealand)? If yes, for how long in total?",["No","Yes, less than 1 month","Yes, 1–4 months","Yes, 5–11 months","Yes, 1–2 years","Yes, 3–5 years","Yes, more than 5 years"]));
+  p.push('<div id="english-use-wrap" hidden>'+radio("english_use_frequency","9. During your stay in the English-speaking country, how frequently did you use English in your daily life?",["Rarely – I mostly communicated in another language.","Occasionally – I used English in some everyday interactions.","Frequently – I used English in most everyday interactions.","Almost exclusively – I used English in nearly all my daily interactions."])+'</div>');
+
+  p.push("<h3>Section II: Preferences and attitudes</h3>");
+  p.push(radio("accent_preference","1. Which English accent would you most like to use?",["Received Pronunciation (British English)","General American (American English)","English with a Romanian accent","Another English accent (please specify)","I have no particular preference"])+textFollow("preferred-accent","preferred_accent_other","Please specify:"));
+  p.push(radio("native_like_ideal","2. To have very good pronunciation in English, a learner should try to sound as much like a native speaker as possible.",likert));
+  p.push(radio("social_approval","3. Most people whose opinions matter to me would approve if I tried to speak English with a more native-like accent.",likert));
+  p.push(radio("fear_of_ridicule","4. I worry that people might make fun of me or criticise me if I really tried to sound more like a native English speaker.",likert));
+  p.push(radio("pronunciation_self_efficacy","5. I believe I could make my English pronunciation much more similar to an English accent I like if I wanted to.",["Strongly disagree","Disagree","Agree","Strongly agree"]));
+  p.push(radio("pronunciation_effort","6. I really try to make my English pronunciation more similar to an English accent I like.",likert));
+  p.push(radio("pronunciation_attention_anxiety","7. I feel anxious when other people pay attention to my English pronunciation.",likert));
+  p.push(radio("english_speaking_cultures_interest","8. I am interested in the cultures and ways of life associated with English-speaking countries.",likert));
+
+  p.push("<h3>Section III: Learning experience and exposure</h3>");
+  p.push(radio("pronunciation_instruction","9. During your English learning, how much has your teacher explained pronunciation to you (e.g., individual sounds, word stress, intonation, or specific accent features)?",["None","Very little","Some","Quite a lot","A lot","I don’t remember / I’m not sure"]));
+  const frequency=["Never","Rarely","Sometimes","Often","Very often","I’m not sure I can identify this variety"];
+  p.push('<div class="q-item"><fieldset><legend>10. How often do you hear each of the following English accents?</legend><p class="q-hint">Consider all sources, including English classes, films and television, online videos, podcasts, music, and conversations. Please select one answer for each row.</p>'+
+    ["British English","American English","English spoken with a Romanian accent","Other English accents"].map((row,i)=>'<fieldset class="frequency-row"><legend>'+row+'</legend>'+frequency.map(value=>'<label class="q-choice"><input type="radio" name="accent_frequency_'+i+'" value="'+escapeHTML(value)+'"><span>'+escapeHTML(value)+'</span></label>').join("")+'</fieldset>').join("")+
+    '</fieldset></div>');
+
+  p.push("<h3>Section IV: Self-assessment</h3>");
+  p.push(radio("self_accent","11. How would you describe your own English accent?",["Mostly similar to British English","Mostly similar to American English","Mostly Romanian-accented English","A mixture of these 3","A mixture of Romanian and American","A mixture of Romanian and British","A mixture of British and American","Another English accent (please specify)","I cannot evaluate my accent"])+textFollow("self-accent","self_accent_other","Please specify:"));
+  content.innerHTML=p.join("");
+
+  const chosen=name=>form.querySelector('input[name="'+name+'"]:checked');
+  const checked=name=>Array.from(form.querySelectorAll('input[name="'+name+'"]:checked'));
+  function toggleText(id,show){const wrap=document.getElementById(id);wrap.hidden=!show;const input=wrap.querySelector('input[type="text"]');if(input){input.disabled=!show;input.required=show;if(!show)input.value="";}}
+  function updateConditions(){
+    toggleText("reason-other",checked("learning_reasons").some(x=>x.value==="Other"));
+    toggleText("method-other",checked("learning_methods").some(x=>x.value==="Other"));
+    const testYes=chosen("official_test")?.value==="Yes";
+    const testDetails=document.getElementById("test-details");
+    testDetails.hidden=!testYes;
+    testDetails.querySelectorAll('input[type="checkbox"]').forEach(x=>{x.disabled=!testYes;if(!testYes)x.checked=false;});
+    const tests=checked("tests_taken");
+    toggleText("test-score",testYes&&tests.length>0);
+    toggleText("test-other",testYes&&tests.some(x=>x.value==="Other"));
+    const stayed=(chosen("english_country_residence")?.value||"").startsWith("Yes,");
+    const useWrap=document.getElementById("english-use-wrap");
+    useWrap.hidden=!stayed;
+    useWrap.querySelectorAll("input").forEach(x=>{x.disabled=!stayed;if(!stayed)x.checked=false;});
+    toggleText("preferred-accent",chosen("accent_preference")?.value.startsWith("Another ")||false);
+    toggleText("self-accent",chosen("self_accent")?.value.startsWith("Another ")||false);
+  }
+  form.addEventListener("change",updateConditions);
+  updateConditions();
+
+  continueButton.addEventListener("click",()=>{
+    speechEvaluationSection.hidden=true;
+    section.hidden=false;
+    statusText.textContent="";
+    section.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+
+  form.addEventListener("submit",event=>{
+    event.preventDefault();
+    updateConditions();
+    const required=["origin_area","age_band_2027","english_study_duration","official_test","current_level","english_country_residence","accent_preference","native_like_ideal","social_approval","fear_of_ridicule","pronunciation_self_efficacy","pronunciation_effort","pronunciation_attention_anxiety","english_speaking_cultures_interest","pronunciation_instruction","self_accent","accent_frequency_0","accent_frequency_1","accent_frequency_2","accent_frequency_3"];
+    if((chosen("english_country_residence")?.value||"").startsWith("Yes,"))required.push("english_use_frequency");
+    const missingRadio=required.find(name=>!chosen(name));
+    const requiredGroups=["learning_reasons","learning_methods"];
+    if(chosen("official_test")?.value==="Yes")requiredGroups.push("tests_taken");
+    const missingGroup=requiredGroups.find(name=>checked(name).length===0);
+    const missingText=Array.from(form.querySelectorAll('input[type="text"][required]')).find(input=>!input.value.trim());
+    if(missingRadio||missingGroup||missingText){
+      validation.hidden=false;
+      const target=missingRadio?form.querySelector('input[name="'+missingRadio+'"]'):missingGroup?form.querySelector('input[name="'+missingGroup+'"]'):missingText;
+      target.scrollIntoView({behavior:"smooth",block:"center"});
+      target.focus({preventScroll:true});
+      return;
+    }
+    validation.hidden=true;
+    const data={};
+    new FormData(form).forEach((value,key)=>{if(Object.prototype.hasOwnProperty.call(data,key)){if(!Array.isArray(data[key]))data[key]=[data[key]];data[key].push(value);}else data[key]=value;});
+    window.questionnaireData=data;
+    form.hidden=true;
+    thanks.hidden=false;
+    statusText.textContent="";
+    section.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+})();
+
+
 // PAGE CLEANUP
 // ============================================
 
