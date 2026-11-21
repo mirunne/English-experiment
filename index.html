@@ -706,8 +706,8 @@
         where <strong>0 indicates the lowest rating and 10 indicates the highest rating</strong>
         for the quality being assessed. The words accompanying each scale indicate the
         quality you are rating. For example, for Educated, 10 indicates that the speaker
-        sounds highly educated; for Friendly, 0 indicates that the speaker doesn’t sound
-        friendly at all.
+        sounds highly educated, while 0 indicates that the speaker doesn’t sound educated
+        at all.
       </p>
 
       <p>
@@ -773,9 +773,12 @@
 
     <div id="speaker-audio-section">
       <h3>Listen to the recording</h3>
-      <audio id="speaker-audio" controls controlsList="nodownload">
+      <audio id="speaker-audio" controls controlsList="nodownload" preload="metadata">
         Your browser does not support audio playback.
       </audio>
+      <p id="speaker-audio-error" role="alert" aria-live="polite" hidden>
+        This recording could not be loaded. Please refresh the page and try again.
+      </p>
     </div>
 
     <p><strong>The speaker is:</strong></p>
@@ -794,8 +797,7 @@
   <!-- Completion screen -->
   <div id="speech-complete" hidden>
     <h2>Speech Evaluation complete</h2>
-    <p>Thank you. You have completed all three parts of the experiment.</p>
-    <p>Your responses have been recorded on this page. Please wait for further instructions.</p>
+    <p>Thank you for completing this section. Please proceed to the final part of the experiment: a short questionnaire.</p>
   </div>
 
 </section>
@@ -2440,18 +2442,22 @@ const speechEvaluationAdjectives = [
 
 const speechRatingValues = [0, 2, 4, 6, 8, 10];
 
+// Resolve recordings relative to the experiment page. This also works when
+// GitHub Pages publishes the site from a repository subdirectory.
+const experimentBaseUrl = new URL("./", document.baseURI);
+
 const speechSpeakers = [
   {
     label: "Speaker 1",
-    audio: "audio/speech-evaluation/Speaker%201.mp3"
+    audio: new URL("audio/speech-evaluation/Speaker%201.mp3", experimentBaseUrl).href
   },
   {
     label: "Speaker 2",
-    audio: "audio/speech-evaluation/Speaker%202.mp3"
+    audio: new URL("audio/speech-evaluation/Speaker%202.mp3", experimentBaseUrl).href
   },
   {
     label: "Speaker 3",
-    audio: "audio/speech-evaluation/Speaker%203.mp3"
+    audio: new URL("audio/speech-evaluation/Speaker%203.mp3", experimentBaseUrl).href
   }
 ];
 
@@ -2498,6 +2504,17 @@ const speakerHeading =
 
 const speakerAudio =
   document.getElementById("speaker-audio");
+
+const speakerAudioError =
+  document.getElementById("speaker-audio-error");
+
+speakerAudio.addEventListener("error", () => {
+  speakerAudioError.hidden = false;
+});
+
+speakerAudio.addEventListener("loadedmetadata", () => {
+  speakerAudioError.hidden = true;
+});
 
 const speakerRatings =
   document.getElementById("speaker-ratings");
@@ -2585,8 +2602,7 @@ continueToSpeechEvaluationButton.addEventListener("click", () => {
   speakerEvaluation.hidden = true;
   speechComplete.hidden = true;
 
-  statusText.textContent =
-    "Please read the instructions for Part III.";
+  statusText.textContent = "";
   speechEvaluationSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
@@ -2594,8 +2610,7 @@ continueToSpeechEvaluationButton.addEventListener("click", () => {
 speechStartQuizButton.addEventListener("click", () => {
   speechIntro.hidden = true;
   speechQuiz.hidden = false;
-  statusText.textContent =
-    "Please answer both questions correctly to continue.";
+  statusText.textContent = "";
 });
 
 
@@ -2606,8 +2621,7 @@ speechQuizContinueButton.addEventListener("click", () => {
   currentSpeechSpeakerIndex = 0;
   showSpeechSpeaker(currentSpeechSpeakerIndex);
 
-  statusText.textContent =
-    "You are ready to start the Speech Evaluation!";
+  statusText.textContent = "";
 });
 
 
@@ -2694,6 +2708,7 @@ function showSpeechSpeaker(index) {
   // The visible player is labelled only by speaker number. The neutral
   // repository filename does not disclose the accent assignment.
   speakerAudio.pause();
+  speakerAudioError.hidden = true;
   speakerAudio.src = speaker.audio;
   speakerAudio.load();
 
@@ -2707,8 +2722,7 @@ function showSpeechSpeaker(index) {
 
   speechValidationMessage.hidden = true;
 
-  statusText.textContent =
-    `Listen to ${speaker.label} and rate the speaker on all 12 items.`;
+  statusText.textContent = "";
 
   speechEvaluationSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -2737,10 +2751,6 @@ speakerNextButton.addEventListener("click", () => {
   if (answeredCount !== speechEvaluationAdjectives.length) {
     speechValidationMessage.hidden = false;
 
-    const firstUnanswered = speechRatingValues.length
-      ? speechRatingValues
-      : [];
-
     const unansweredFieldset = Array.from(
       speakerRatings.querySelectorAll("fieldset")
     ).find(fieldset => !fieldset.querySelector('input[type="radio"]:checked'));
@@ -2764,8 +2774,7 @@ speakerNextButton.addEventListener("click", () => {
     speakerEvaluation.hidden = true;
     speechComplete.hidden = false;
 
-    statusText.textContent =
-      "Part III complete. Thank you for taking part in the experiment.";
+    statusText.textContent = "";
 
     // This object will be included in the unified Google Drive submission
     // when the data-collection system is implemented.
