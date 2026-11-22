@@ -96,8 +96,6 @@ function doPost(event) {
       throw new Error("Invalid request.");
     }
 
-    requireUploadCode_(request.accessCode);
-
     const requestId = String(request.requestId || "");
     if (!/^[A-Za-z0-9_-]{20,80}$/.test(requestId)) {
       throw new Error("Invalid request identifier.");
@@ -114,6 +112,8 @@ function doPost(event) {
     cache.put(statusKey, JSON.stringify({ state: "working" }), 300);
 
     try {
+      requireUploadCode_(request.accessCode);
+
       let result;
 
       if (request.action === "beginUpload") {
