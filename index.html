@@ -220,6 +220,38 @@
     margin-top: 0;
   }
 
+  #speaker-audio {
+    display: none;
+  }
+
+  .speaker-player-controls {
+    margin-top: 14px;
+  }
+
+  .speaker-player-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .speaker-player-buttons button {
+    margin: 0;
+  }
+
+  #speaker-progress {
+    display: block;
+    width: 100%;
+    height: 12px;
+    margin: 16px 0 4px;
+  }
+
+  #speaker-playback-time {
+    margin: 0;
+    color: #52606d;
+    font-size: 14px;
+    text-align: right;
+  }
+
   #speaker-ratings {
     margin-top: 24px;
   }
@@ -787,9 +819,15 @@
 
     <div id="speaker-audio-section">
       <h3>Listen to the recording</h3>
-      <audio id="speaker-audio" controls controlsList="nodownload" preload="auto">
-        Your browser does not support audio playback.
-      </audio>
+      <div class="speaker-player-controls">
+        <div class="speaker-player-buttons">
+          <button id="speaker-play-pause" type="button" disabled>Play recording</button>
+          <button id="speaker-restart" type="button" disabled>Restart</button>
+        </div>
+        <progress id="speaker-progress" value="0" max="100" aria-label="Playback progress"></progress>
+        <p id="speaker-playback-time" aria-live="off">0:00 / 0:00</p>
+      </div>
+      <audio id="speaker-audio" preload="auto" aria-hidden="true"></audio>
       <p id="speaker-audio-error" role="alert" aria-live="polite" hidden>
         This recording could not be loaded. Please refresh the page and try again.
       </p>
@@ -2467,12 +2505,95 @@ const speakerAudio =
 const speakerAudioError =
   document.getElementById("speaker-audio-error");
 
+const speakerPlayPauseButton =
+  document.getElementById("speaker-play-pause");
+
+const speakerRestartButton =
+  document.getElementById("speaker-restart");
+
+const speakerProgress =
+  document.getElementById("speaker-progress");
+
+const speakerPlaybackTime =
+  document.getElementById("speaker-playback-time");
+
+function formatSpeakerTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainingSeconds = String(wholeSeconds % 60).padStart(2, "0");
+
+  return `${minutes}:${remainingSeconds}`;
+}
+
+function updateSpeakerPlaybackControls() {
+  const duration = Number.isFinite(speakerAudio.duration)
+    ? speakerAudio.duration
+    : 0;
+  const currentTime = Number.isFinite(speakerAudio.currentTime)
+    ? speakerAudio.currentTime
+    : 0;
+
+  speakerPlayPauseButton.textContent =
+    speakerAudio.paused ? "Play recording" : "Pause";
+
+  speakerProgress.max = duration || 1;
+  speakerProgress.value = Math.min(currentTime, duration || 1);
+
+  speakerPlaybackTime.textContent =
+    `${formatSpeakerTime(currentTime)} / ${formatSpeakerTime(duration)}`;
+
+  const ready = speakerAudio.readyState >= 1;
+  speakerPlayPauseButton.disabled = !ready;
+  speakerRestartButton.disabled = !ready;
+}
+
 speakerAudio.addEventListener("error", () => {
   speakerAudioError.hidden = false;
+  speakerPlayPauseButton.disabled = true;
+  speakerRestartButton.disabled = true;
 });
 
 speakerAudio.addEventListener("loadedmetadata", () => {
   speakerAudioError.hidden = true;
+  updateSpeakerPlaybackControls();
+});
+
+["play", "pause", "ended", "timeupdate", "durationchange", "emptied"].forEach(eventName => {
+  speakerAudio.addEventListener(eventName, updateSpeakerPlaybackControls);
+});
+
+speakerPlayPauseButton.addEventListener("click", async () => {
+  if (speakerAudio.paused) {
+    try {
+      await speakerAudio.play();
+      speakerAudioError.hidden = true;
+    } catch (error) {
+      speakerAudioError.textContent =
+        "This recording could not be played. Please try again.";
+      speakerAudioError.hidden = false;
+    }
+  } else {
+    speakerAudio.pause();
+  }
+
+  updateSpeakerPlaybackControls();
+});
+
+speakerRestartButton.addEventListener("click", () => {
+  speakerAudio.pause();
+
+  try {
+    speakerAudio.currentTime = 0;
+    speakerAudioError.hidden = true;
+  } catch (error) {
+    speakerAudioError.textContent =
+      "The recording could not be restarted. Please try again.";
+    speakerAudioError.hidden = false;
+  }
+
+  updateSpeakerPlaybackControls();
 });
 
 const speakerRatings =
