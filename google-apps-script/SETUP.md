@@ -22,7 +22,9 @@ This Apps Script project is the private storage endpoint for the English Experim
 6. Save the project.
 7. Select `setupDriveFolder` in the function dropdown and click **Run**.
 8. Review Google's authorisation prompt and grant the requested Drive and external-request permissions.
-9. Open the execution log. It will show the private Drive destination folder and a random **Participant upload code**. Keep this code out of GitHub and share it privately with your participants. To retrieve it later, run `showUploadAccessCode`.
+9. Open the execution log. It will show the private Drive destination folder and a random **Participant upload code**.
+
+The backend uses the Google Drive API's resumable upload endpoint through `UrlFetchApp`. If Google reports that the Drive API has not been enabled for the project, open **Project Settings → Google Cloud Platform project**, follow the linked project in Google Cloud Console, and enable **Google Drive API** under **APIs & Services → Library**. The script does not use the Advanced Drive service. Keep this code out of GitHub and share it privately with your participants. To retrieve it later, run `showUploadAccessCode`.
 
 ## Deploy the endpoint
 
@@ -32,6 +34,8 @@ This Apps Script project is the private storage endpoint for the English Experim
 4. Set **Who has access** to **Anyone** (including people who are not signed in to Google).
 5. Deploy and complete any additional Google authorisation prompt.
 6. Copy the deployed URL ending in `/exec`.
+7. Test the public health check by opening `YOUR_WEB_APP_URL/exec?action=ping` in a browser. It should return a JSON response with state `ready`.
+8. Send the researcher the deployed `/exec` URL through this conversation. Keep the participant upload code private; you will distribute it separately to participants.
 
 The web app must be anonymously accessible because participants should not have to sign in to Google. It runs as the researcher, so uploaded files are created in the researcher's Drive. The participant upload code is required for POST requests.
 
@@ -41,6 +45,6 @@ This is a publicly reachable upload endpoint, protected by a separate study acce
 
 ## Handoff
 
-Send the researcher the deployed `/exec` URL through a private channel. Do not send the participant upload code in GitHub issues, public repository files, or other public locations.
+Send the deployed `/exec` URL to the developer through this conversation. Keep the participant upload code private; you will distribute it separately to participants.
 
 The GitHub Pages page will be connected to the endpoint in a later step. Do not distribute the Apps Script URL as the experiment link; participants will continue to use the experiment page.
