@@ -220,10 +220,6 @@
     margin-top: 0;
   }
 
-  #speaker-audio {
-    display: none;
-  }
-
   .speaker-player-controls {
     margin-top: 14px;
   }
@@ -827,7 +823,6 @@
         <progress id="speaker-progress" value="0" max="100" aria-label="Playback progress"></progress>
         <p id="speaker-playback-time" aria-live="off">0:00 / 0:00</p>
       </div>
-      <audio id="speaker-audio" preload="auto" aria-hidden="true"></audio>
       <p id="speaker-audio-error" role="alert" aria-live="polite" hidden>
         This recording could not be loaded. Please refresh the page and try again.
       </p>
@@ -2499,9 +2494,6 @@ const speakerEvaluation =
 const speakerHeading =
   document.getElementById("speaker-heading");
 
-const speakerAudio =
-  document.getElementById("speaker-audio");
-
 const speakerAudioError =
   document.getElementById("speaker-audio-error");
 
@@ -2517,6 +2509,35 @@ const speakerProgress =
 const speakerPlaybackTime =
   document.getElementById("speaker-playback-time");
 
+// Speech Evaluation uses decoded in-memory audio buffers rather than an
+// HTMLMediaElement. Pausing stores an explicit buffer offset; resuming
+// creates a fresh AudioBufferSourceNode at exactly that offset.
+let speechAudioContext = null;
+const speechAudioBuffers = new Map();
+let activeSpeakerAudioUrl = null;
+let activeSpeakerBuffer = null;
+let activeSpeakerLoadSequence = 0;
+let speakerAudioSource = null;
+let speakerPlaybackOffset = 0;
+let speakerPlaybackStartedAt = 0;
+let speakerIsPlaying = false;
+let speakerProgressFrame = null;
+
+function getSpeechAudioContext() {
+  if (!speechAudioContext) {
+    const AudioContextConstructor =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextConstructor) {
+      throw new Error("Web Audio is not supported by this browser.");
+    }
+
+    speechAudioContext = new AudioContextConstructor();
+  }
+
+  return speechAudioContext;
+}
+
 function formatSpeakerTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
 
@@ -2527,73 +2548,227 @@ function formatSpeakerTime(seconds) {
   return `${minutes}:${remainingSeconds}`;
 }
 
+function getSpeakerPlaybackPosition() {
+  if (!activeSpeakerBuffer) return 0;
+
+  if (speakerIsPlaying && speechAudioContext) {
+    const elapsed = Math.max(
+      0,
+      speechAudioContext.currentTime - speakerPlaybackStartedAt
+    );
+
+    return Math.min(
+      activeSpeakerBuffer.duration,
+      speakerPlaybackOffset + elapsed
+    );
+  }
+
+  return Math.min(speakerPlaybackOffset, activeSpeakerBuffer.duration);
+}
+
 function updateSpeakerPlaybackControls() {
-  const duration = Number.isFinite(speakerAudio.duration)
-    ? speakerAudio.duration
-    : 0;
-  const currentTime = Number.isFinite(speakerAudio.currentTime)
-    ? speakerAudio.currentTime
+  const duration = activeSpeakerBuffer
+    ? activeSpeakerBuffer.duration
     : 0;
 
+  const currentTime = getSpeakerPlaybackPosition();
+
   speakerPlayPauseButton.textContent =
-    speakerAudio.paused ? "Play recording" : "Pause";
+    speakerIsPlaying ? "Pause" : "Play recording";
 
   speakerProgress.max = duration || 1;
   speakerProgress.value = Math.min(currentTime, duration || 1);
 
   speakerPlaybackTime.textContent =
-    `${formatSpeakerTime(currentTime)} / ${formatSpeakerTime(duration)}`;
+    activeSpeakerBuffer
+      ? `${formatSpeakerTime(currentTime)} / ${formatSpeakerTime(duration)}`
+      : "Loading recording…";
 
-  const ready = speakerAudio.readyState >= 1;
+  const ready = Boolean(activeSpeakerBuffer);
   speakerPlayPauseButton.disabled = !ready;
   speakerRestartButton.disabled = !ready;
 }
 
-speakerAudio.addEventListener("error", () => {
-  speakerAudioError.hidden = false;
-  speakerPlayPauseButton.disabled = true;
-  speakerRestartButton.disabled = true;
-});
-
-speakerAudio.addEventListener("loadedmetadata", () => {
-  speakerAudioError.hidden = true;
-  updateSpeakerPlaybackControls();
-});
-
-["play", "pause", "ended", "timeupdate", "durationchange", "emptied"].forEach(eventName => {
-  speakerAudio.addEventListener(eventName, updateSpeakerPlaybackControls);
-});
-
-speakerPlayPauseButton.addEventListener("click", async () => {
-  if (speakerAudio.paused) {
-    try {
-      await speakerAudio.play();
-      speakerAudioError.hidden = true;
-    } catch (error) {
-      speakerAudioError.textContent =
-        "This recording could not be played. Please try again.";
-      speakerAudioError.hidden = false;
-    }
-  } else {
-    speakerAudio.pause();
+function stopSpeakerSource() {
+  if (speakerProgressFrame !== null) {
+    cancelAnimationFrame(speakerProgressFrame);
+    speakerProgressFrame = null;
   }
 
+  if (speakerAudioSource) {
+    const sourceToStop = speakerAudioSource;
+    speakerAudioSource = null;
+    sourceToStop.onended = null;
+
+    try {
+      sourceToStop.stop();
+    } catch (error) {
+      // The source may already have stopped naturally.
+    }
+
+    try {
+      sourceToStop.disconnect();
+    } catch (error) {
+      // The source may already be disconnected.
+    }
+  }
+
+  speakerIsPlaying = false;
+}
+
+function pauseSpeakerPlayback() {
+  if (!speakerIsPlaying) return;
+
+  // Capture the Web Audio clock position before stopping the current source.
+  speakerPlaybackOffset = getSpeakerPlaybackPosition();
+  stopSpeakerSource();
   updateSpeakerPlaybackControls();
+}
+
+function animateSpeakerProgress() {
+  updateSpeakerPlaybackControls();
+
+  if (speakerIsPlaying) {
+    speakerProgressFrame = requestAnimationFrame(animateSpeakerProgress);
+  } else {
+    speakerProgressFrame = null;
+  }
+}
+
+async function startSpeakerPlayback() {
+  if (!activeSpeakerBuffer) return;
+
+  try {
+    const context = getSpeechAudioContext();
+
+    // resume() is called directly from the user's Play/Restart interaction
+    // when iOS has suspended the audio context.
+    if (context.state !== "running") {
+      await context.resume();
+    }
+
+    if (context.state !== "running") {
+      throw new Error("The audio context is not running.");
+    }
+
+    if (speakerPlaybackOffset >= activeSpeakerBuffer.duration) {
+      speakerPlaybackOffset = 0;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = activeSpeakerBuffer;
+    source.connect(context.destination);
+
+    speakerAudioSource = source;
+    speakerPlaybackStartedAt = context.currentTime;
+    speakerIsPlaying = true;
+
+    source.onended = () => {
+      if (speakerAudioSource !== source) return;
+
+      speakerAudioSource = null;
+      speakerIsPlaying = false;
+      speakerPlaybackOffset = activeSpeakerBuffer
+        ? activeSpeakerBuffer.duration
+        : 0;
+
+      try {
+        source.disconnect();
+      } catch (error) {
+        // No action needed if the source is already disconnected.
+      }
+
+      if (speakerProgressFrame !== null) {
+        cancelAnimationFrame(speakerProgressFrame);
+        speakerProgressFrame = null;
+      }
+
+      updateSpeakerPlaybackControls();
+    };
+
+    source.start(0, speakerPlaybackOffset);
+    speakerAudioError.hidden = true;
+    animateSpeakerProgress();
+  } catch (error) {
+    speakerIsPlaying = false;
+    speakerAudioError.textContent =
+      "This recording could not be played. Please tap Play recording to try again.";
+    speakerAudioError.hidden = false;
+    updateSpeakerPlaybackControls();
+  }
+}
+
+async function preloadSpeakerAudio(speaker, loadSequence) {
+  speakerAudioError.hidden = true;
+  speakerPlayPauseButton.disabled = true;
+  speakerRestartButton.disabled = true;
+  speakerPlaybackTime.textContent = "Loading recording…";
+
+  try {
+    const context = getSpeechAudioContext();
+
+    // This call occurs as the new speaker screen is opened from a user action.
+    // The Play button also resumes the context directly from its own click.
+    if (context.state === "suspended") {
+      context.resume().catch(() => {});
+    }
+
+    let buffer = speechAudioBuffers.get(speaker.audio);
+
+    if (!buffer) {
+      const response = await fetch(speaker.audio, { cache: "force-cache" });
+
+      if (!response.ok) {
+        throw new Error(`Audio request failed: ${response.status}`);
+      }
+
+      const encodedAudio = await response.arrayBuffer();
+      buffer = await context.decodeAudioData(encodedAudio.slice(0));
+      speechAudioBuffers.set(speaker.audio, buffer);
+    }
+
+    if (
+      loadSequence !== activeSpeakerLoadSequence ||
+      speaker.audio !== activeSpeakerAudioUrl
+    ) {
+      return;
+    }
+
+    activeSpeakerBuffer = buffer;
+    speakerPlaybackOffset = 0;
+    speakerAudioError.hidden = true;
+    updateSpeakerPlaybackControls();
+  } catch (error) {
+    if (loadSequence !== activeSpeakerLoadSequence) return;
+
+    activeSpeakerBuffer = null;
+    speakerPlayPauseButton.disabled = true;
+    speakerRestartButton.disabled = true;
+    speakerPlaybackTime.textContent = "Audio unavailable";
+    speakerAudioError.textContent =
+      "This recording could not be loaded. Please check your connection and try again.";
+    speakerAudioError.hidden = false;
+  }
+}
+
+speakerPlayPauseButton.addEventListener("click", () => {
+  if (speakerIsPlaying) {
+    pauseSpeakerPlayback();
+  } else {
+    startSpeakerPlayback();
+  }
 });
 
 speakerRestartButton.addEventListener("click", () => {
-  speakerAudio.pause();
+  const wasPlaying = speakerIsPlaying;
 
-  try {
-    speakerAudio.currentTime = 0;
-    speakerAudioError.hidden = true;
-  } catch (error) {
-    speakerAudioError.textContent =
-      "The recording could not be restarted. Please try again.";
-    speakerAudioError.hidden = false;
-  }
-
+  stopSpeakerSource();
+  speakerPlaybackOffset = 0;
   updateSpeakerPlaybackControls();
+
+  if (wasPlaying) {
+    startSpeakerPlayback();
+  }
 });
 
 const speakerRatings =
@@ -2787,10 +2962,14 @@ function showSpeechSpeaker(index) {
 
   // The visible player is labelled only by speaker number. The neutral
   // repository filename does not disclose the accent assignment.
-  speakerAudio.pause();
+  stopSpeakerSource();
+  activeSpeakerAudioUrl = speaker.audio;
+  activeSpeakerBuffer = null;
+  speakerPlaybackOffset = 0;
+  activeSpeakerLoadSequence += 1;
   speakerAudioError.hidden = true;
-  speakerAudio.src = speaker.audio;
-  speakerAudio.load();
+  updateSpeakerPlaybackControls();
+  preloadSpeakerAudio(speaker, activeSpeakerLoadSequence);
 
   renderSpeechSpeakerRatings(speakerNumber);
 
@@ -2850,7 +3029,7 @@ speakerNextButton.addEventListener("click", () => {
   if (currentSpeechSpeakerIndex < speechSpeakers.length - 1) {
     showSpeechSpeaker(currentSpeechSpeakerIndex + 1);
   } else {
-    speakerAudio.pause();
+    stopSpeakerSource();
     speakerEvaluation.hidden = true;
     speechComplete.hidden = false;
 
