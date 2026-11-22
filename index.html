@@ -95,6 +95,75 @@
     border-radius: 10px;
   }
 
+  .preliminary-question {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 18px 0;
+    padding: 16px;
+    background: #f0f4f8;
+    border-radius: 8px;
+  }
+
+  .preliminary-question > label:first-child {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  #preliminary-screen input[type="text"],
+  #preliminary-screen input[type="number"],
+  #preliminary-screen select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    padding: 11px;
+    border: 1px solid #9fb3c8;
+    border-radius: 6px;
+    background: white;
+    font: inherit;
+  }
+
+  #preliminary-screen .preliminary-inline-choice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-weight: normal;
+  }
+
+  #preliminary-screen .preliminary-inline-choice input {
+    margin: 0;
+  }
+
+  #browser-other-wrap {
+    margin-top: 14px;
+  }
+
+  #compatibility-check-failed {
+    margin: 20px 0;
+    padding: 18px;
+    background: #fff3f2;
+    border-left: 4px solid #b42318;
+    border-radius: 8px;
+  }
+
+  #compatibility-check-details {
+    font-weight: bold;
+  }
+
+  #compatibility-check-running {
+    margin: 20px 0;
+    padding: 16px;
+    background: #f0f4f8;
+    border-radius: 8px;
+  }
+
+  #compatibility-check-running[hidden],
+  #compatibility-check-failed[hidden],
+  #browser-other-wrap[hidden] {
+    display: none;
+  }
+
   .device-section h3 {
     margin-top: 0;
   }
@@ -344,19 +413,137 @@
 <main>
 
 <!-- ================================== -->
+<!-- PRELIMINARY DEVICE QUESTIONS      -->
+<!-- ================================== -->
+
+<section id="preliminary-screen">
+
+  <h1>English Experiment</h1>
+
+  <p>
+    Hello! My name is Miruna Măchiță, and I am a linguistics PhD candidate
+    at the Faculty of Foreign Languages and Literatures of the University
+    of Bucharest. I am conducting an experiment for my PhD research.
+  </p>
+
+  <div id="compatibility-check-running" role="status" aria-live="polite">
+    Checking your device and browser compatibility…
+  </div>
+
+  <div id="compatibility-check-failed" hidden role="alert">
+    <h2>Your device or browser is not supported</h2>
+    <p>
+      Unfortunately, your current device or browser does not meet all the
+      technical requirements of this experiment.
+    </p>
+
+    <p><strong>Minimum supported configurations:</strong></p>
+    <ul>
+      <li>
+        <strong>iPhone and iPad:</strong> iOS/iPadOS 14.5 or later,
+        using Safari or another browser based on Apple's WebKit engine.
+      </li>
+      <li><strong>Android:</strong> Google Chrome 66 or later.</li>
+      <li><strong>Android:</strong> Mozilla Firefox 79 or later.</li>
+      <li><strong>Android:</strong> Samsung Internet 9.2 or later.</li>
+      <li><strong>Android:</strong> Opera 47 or later.</li>
+      <li><strong>Android:</strong> Microsoft Edge 79 or later.</li>
+    </ul>
+
+    <p>
+      The experiment also requires microphone access, Web Audio with
+      AudioWorklet support, and IndexedDB.
+    </p>
+
+    <p id="compatibility-check-details"></p>
+
+    <p>
+      Please update your operating system or browser, or open this page
+      in one of the supported browsers. Then reload the experiment.
+      You cannot continue until your device passes the compatibility check.
+    </p>
+  </div>
+
+  <form id="preliminary-form" hidden novalidate>
+
+    <h2>Before you begin</h2>
+
+    <div class="preliminary-question">
+      <label for="phone-model">
+        1. Which phone model are you using?
+      </label>
+      <input
+        type="text"
+        id="phone-model"
+        name="phone_model"
+        placeholder="e.g. iPhone 13, Samsung Galaxy S22"
+        autocomplete="off"
+        required
+      >
+    </div>
+
+    <div class="preliminary-question">
+      <label for="phone-release-year">
+        2. When was this phone model released?
+      </label>
+      <input
+        type="number"
+        id="phone-release-year"
+        name="phone_release_year"
+        min="1990"
+        step="1"
+        placeholder="e.g. 2021"
+        inputmode="numeric"
+        required
+      >
+      <label class="preliminary-inline-choice" for="phone-year-unknown">
+        <input type="checkbox" id="phone-year-unknown">
+        I'm not sure.
+      </label>
+    </div>
+
+    <div class="preliminary-question">
+      <label for="browser-used">
+        3. Which browser are you using?
+      </label>
+      <select id="browser-used" name="browser_used" required>
+        <option value="">Please select</option>
+        <option value="Safari">Safari</option>
+        <option value="Google Chrome">Google Chrome</option>
+        <option value="Samsung Internet">Samsung Internet</option>
+        <option value="Mozilla Firefox">Mozilla Firefox</option>
+        <option value="Microsoft Edge">Microsoft Edge</option>
+        <option value="Opera">Opera</option>
+        <option value="Other">Another browser or in-app browser</option>
+      </select>
+
+      <div id="browser-other-wrap" hidden>
+        <label for="browser-other">Please specify the browser:</label>
+        <input
+          type="text"
+          id="browser-other"
+          name="browser_other"
+          placeholder="Browser name"
+          autocomplete="off"
+          disabled
+        >
+      </div>
+    </div>
+
+    <button id="preliminary-continue" type="submit" class="primary-action">
+      Continue
+    </button>
+
+  </form>
+
+</section>
+
+
+<!-- ================================== -->
 <!-- DEVICE VIBRATION INSTRUCTIONS     -->
 <!-- ================================== -->
 
-<section id="device-instructions">
-
-<h1>English Experiment</h1>
-
-<p>
-  Hello! My name is Miruna Măchiță, and I am a linguistics PhD candidate
-  at the Faculty of Foreign Languages and Literatures of the University
-  of Bucharest. I am conducting an experiment for my PhD research.
-</p>
-
+<section id="device-instructions" hidden>
 
   <h2>Before you begin</h2>
 
@@ -866,7 +1053,7 @@
 </section>
 
 <p id="status" role="status" aria-live="polite">
-  Please check your phone's vibration settings before continuing.
+  Checking device and browser compatibility…
 </p>
 
 
@@ -1035,6 +1222,452 @@ const readingPlayback =
 
 const readingDownload =
   document.getElementById("reading-download");
+
+// ============================================
+// PRELIMINARY QUESTIONS AND COMPATIBILITY
+// ============================================
+
+const preliminaryScreen =
+  document.getElementById("preliminary-screen");
+
+const preliminaryForm =
+  document.getElementById("preliminary-form");
+
+const compatibilityRunning =
+  document.getElementById("compatibility-check-running");
+
+const compatibilityFailed =
+  document.getElementById("compatibility-check-failed");
+
+const compatibilityDetails =
+  document.getElementById("compatibility-check-details");
+
+const phoneModelInput =
+  document.getElementById("phone-model");
+
+const phoneReleaseYearInput =
+  document.getElementById("phone-release-year");
+
+const phoneYearUnknown =
+  document.getElementById("phone-year-unknown");
+
+const browserUsedSelect =
+  document.getElementById("browser-used");
+
+const browserOtherWrap =
+  document.getElementById("browser-other-wrap");
+
+const browserOtherInput =
+  document.getElementById("browser-other");
+
+function compareVersionStrings(actual, minimum) {
+
+  const actualParts = String(actual).split(".").map(Number);
+  const minimumParts = String(minimum).split(".").map(Number);
+  const length = Math.max(actualParts.length, minimumParts.length);
+
+  for (let index = 0; index < length; index++) {
+
+    const actualPart = actualParts[index] || 0;
+    const minimumPart = minimumParts[index] || 0;
+
+    if (actualPart > minimumPart) return 1;
+    if (actualPart < minimumPart) return -1;
+
+  }
+
+  return 0;
+
+}
+
+
+function detectDeviceAndBrowser() {
+
+  const userAgent = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+
+  const isIPadDesktopMode =
+    platform === "MacIntel" && navigator.maxTouchPoints > 1;
+
+  const isIOS =
+    /iPhone|iPad|iPod/i.test(userAgent) || isIPadDesktopMode;
+
+  const isAndroid =
+    /Android/i.test(userAgent);
+
+  let operatingSystem = "Unsupported or unidentified mobile operating system";
+  let operatingSystemVersion = null;
+
+  if (isIOS) {
+
+    operatingSystem = isIPadDesktopMode ? "iPadOS" : "iOS";
+
+    const iosVersionMatch = userAgent.match(
+      /(?:CPU (?:iPhone )?OS|iPhone OS|OS) ([0-9_]+)/i
+    );
+
+    if (iosVersionMatch) {
+      operatingSystemVersion =
+        iosVersionMatch[1].replace(/_/g, ".");
+    }
+
+  } else if (isAndroid) {
+
+    operatingSystem = "Android";
+
+    const androidVersionMatch =
+      userAgent.match(/Android\s([0-9.]+)/i);
+
+    if (androidVersionMatch) {
+      operatingSystemVersion = androidVersionMatch[1];
+    }
+
+  }
+
+  let browser = "Unidentified browser";
+  let browserVersion = null;
+
+  const browserPatterns = [
+    { name: "Samsung Internet", pattern: /SamsungBrowser\/([0-9.]+)/i },
+    { name: "Microsoft Edge", pattern: /(?:EdgA|EdgiOS|Edg)\/([0-9.]+)/i },
+    { name: "Opera", pattern: /(?:OPR|OPiOS)\/([0-9.]+)/i },
+    { name: "Mozilla Firefox", pattern: /(?:Firefox|FxiOS)\/([0-9.]+)/i },
+    { name: "Google Chrome", pattern: /(?:Chrome|CriOS)\/([0-9.]+)/i },
+    { name: "Safari", pattern: /Version\/([0-9.]+).*Safari/i }
+  ];
+
+  for (const item of browserPatterns) {
+
+    const match = userAgent.match(item.pattern);
+
+    if (match) {
+      browser = item.name;
+      browserVersion = match[1];
+      break;
+    }
+
+  }
+
+  return {
+    operatingSystem,
+    operatingSystemVersion,
+    browser,
+    browserVersion,
+    userAgent,
+    isIOS,
+    isAndroid,
+    isIPadDesktopMode
+  };
+
+}
+
+
+async function runCompatibilityCheck() {
+
+  const detected = detectDeviceAndBrowser();
+  const problems = [];
+
+  if (!detected.isIOS && !detected.isAndroid) {
+    problems.push(
+      "This experiment is designed for iPhone, iPad, and Android devices."
+    );
+  }
+
+  if (detected.isIOS && detected.operatingSystemVersion) {
+
+    if (
+      compareVersionStrings(
+        detected.operatingSystemVersion,
+        "14.5"
+      ) < 0
+    ) {
+      problems.push(
+        "Your iOS/iPadOS version is older than 14.5."
+      );
+    }
+
+  }
+
+  if (detected.isAndroid) {
+
+    const minimumVersions = {
+      "Google Chrome": "66",
+      "Mozilla Firefox": "79",
+      "Samsung Internet": "9.2",
+      "Opera": "47",
+      "Microsoft Edge": "79"
+    };
+
+    const minimumVersion = minimumVersions[detected.browser];
+
+    if (
+      minimumVersion &&
+      detected.browserVersion &&
+      compareVersionStrings(
+        detected.browserVersion,
+        minimumVersion
+      ) < 0
+    ) {
+      problems.push(
+        detected.browser + " " + detected.browserVersion +
+        " is older than the supported minimum version " +
+        minimumVersion + "."
+      );
+    }
+
+  }
+
+  if (!window.isSecureContext) {
+    problems.push(
+      "The page is not running in a secure HTTPS context."
+    );
+  }
+
+  if (
+    !navigator.mediaDevices ||
+    typeof navigator.mediaDevices.getUserMedia !== "function"
+  ) {
+    problems.push(
+      "This browser does not provide the microphone access required for recording."
+    );
+  }
+
+  if (typeof window.indexedDB === "undefined") {
+    problems.push(
+      "This browser does not support the local storage system required to protect your experiment data."
+    );
+  }
+
+  const AudioContextClass =
+    window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+
+    problems.push(
+      "This browser does not support the Web Audio API required by the experiment."
+    );
+
+  } else {
+
+    let testContext = null;
+    let testNode = null;
+
+    try {
+
+      try {
+
+        testContext = new AudioContextClass({
+          sampleRate: TARGET_SAMPLE_RATE
+        });
+
+      } catch (sampleRateError) {
+
+        // Match the recorder's fallback to the browser's default sample rate.
+        testContext = new AudioContextClass();
+
+      }
+
+      if (
+        !testContext.audioWorklet ||
+        typeof testContext.audioWorklet.addModule !== "function" ||
+        typeof window.AudioWorkletNode !== "function"
+      ) {
+        throw new Error("AudioWorklet is unavailable.");
+      }
+
+      await testContext.audioWorklet.addModule(
+        "recorder-worklet.js?v=channel-stats-2"
+      );
+
+      testNode = new AudioWorkletNode(
+        testContext,
+        "recorder-processor",
+        {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [1]
+        }
+      );
+
+      testNode.disconnect();
+
+    } catch (error) {
+
+      problems.push(
+        "The browser could not load or initialise the audio recording components."
+      );
+
+    } finally {
+
+      if (testContext && testContext.state !== "closed") {
+        try {
+          await testContext.close();
+        } catch (error) {
+          // The temporary context may already have closed.
+        }
+      }
+
+    }
+
+  }
+
+  return {
+    passed: problems.length === 0,
+    problems,
+    checkedAt: new Date().toISOString(),
+    ...detected
+  };
+
+}
+
+
+async function initialisePreliminaryScreen() {
+
+  const currentYear = new Date().getFullYear();
+  phoneReleaseYearInput.max = String(currentYear);
+
+  compatibilityRunning.hidden = false;
+  compatibilityFailed.hidden = true;
+  preliminaryForm.hidden = true;
+
+  statusText.textContent =
+    "Checking device and browser compatibility…";
+
+  const result = await runCompatibilityCheck();
+  window.deviceCompatibility = result;
+
+  if (!result.passed) {
+
+    compatibilityRunning.hidden = true;
+    compatibilityFailed.hidden = false;
+
+    const detectedDescription = [
+      result.operatingSystem +
+        (result.operatingSystemVersion
+          ? " " + result.operatingSystemVersion
+          : ""),
+      result.browser +
+        (result.browserVersion
+          ? " " + result.browserVersion
+          : "")
+    ].join(" · ");
+
+    compatibilityDetails.textContent =
+      "Detected configuration: " + detectedDescription +
+      ". " + result.problems.join(" ");
+
+    statusText.textContent =
+      "Your device or browser is not supported.";
+
+    return;
+
+  }
+
+  compatibilityRunning.hidden = true;
+  preliminaryForm.hidden = false;
+
+  statusText.textContent =
+    "Your device is compatible. Please answer the three questions to continue.";
+
+}
+
+
+phoneYearUnknown.addEventListener("change", () => {
+
+  phoneReleaseYearInput.disabled = phoneYearUnknown.checked;
+  phoneReleaseYearInput.required = !phoneYearUnknown.checked;
+
+  if (phoneYearUnknown.checked) {
+    phoneReleaseYearInput.value = "";
+  }
+
+});
+
+
+browserUsedSelect.addEventListener("change", () => {
+
+  const isOther = browserUsedSelect.value === "Other";
+
+  browserOtherWrap.hidden = !isOther;
+  browserOtherInput.disabled = !isOther;
+  browserOtherInput.required = isOther;
+
+  if (!isOther) {
+    browserOtherInput.value = "";
+  }
+
+});
+
+
+preliminaryForm.addEventListener("submit", event => {
+
+  event.preventDefault();
+
+  phoneModelInput.value = phoneModelInput.value.trim();
+  browserOtherInput.value = browserOtherInput.value.trim();
+
+  if (!preliminaryForm.checkValidity()) {
+    preliminaryForm.reportValidity();
+    return;
+  }
+
+  const releaseYearUnknown = phoneYearUnknown.checked;
+  const reportedBrowser = browserUsedSelect.value === "Other"
+    ? browserOtherInput.value
+    : browserUsedSelect.value;
+
+  window.deviceInfo = {
+
+    phoneModel: phoneModelInput.value,
+
+    phoneReleaseYear: releaseYearUnknown
+      ? null
+      : Number(phoneReleaseYearInput.value),
+
+    phoneReleaseYearUnknown: releaseYearUnknown,
+
+    browserReported: reportedBrowser,
+
+    detectedOperatingSystem:
+      window.deviceCompatibility.operatingSystem,
+
+    detectedOperatingSystemVersion:
+      window.deviceCompatibility.operatingSystemVersion,
+
+    detectedBrowser:
+      window.deviceCompatibility.browser,
+
+    detectedBrowserVersion:
+      window.deviceCompatibility.browserVersion,
+
+    userAgent:
+      window.deviceCompatibility.userAgent,
+
+    compatibilityPassed: true,
+
+    compatibilityCheckedAt:
+      window.deviceCompatibility.checkedAt,
+
+    collectedAt: new Date().toISOString()
+
+  };
+
+  preliminaryScreen.hidden = true;
+  deviceInstructions.hidden = false;
+
+  statusText.textContent =
+    "Please check your phone's vibration settings before continuing.";
+
+  deviceInstructions.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+});
+
+
+initialisePreliminaryScreen();
+
 
 // ============================================
 // DEVICE INSTRUCTIONS NAVIGATION
