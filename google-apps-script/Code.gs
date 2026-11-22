@@ -482,7 +482,7 @@ function getNextOffset_(headers) {
   const range = getHeader_(headers, "Range");
   if (!range) return 0;
 
-  const match = String(range).match(/(\\d+)-(\\d+)/);
+  const match = String(range).match(/(\d+)-(\d+)/);
   return match ? Number(match[2]) + 1 : 0;
 }
 
@@ -562,6 +562,6 @@ function safeErrorMessage_(error) {
     : "The upload failed.";
 
   return message
-    .replace(/https?:\\/\\/[^\\s]+/g, "[service URL]")
+    .replace(/https?:\/\/[^\s]+/g, "[service URL]")
     .slice(0, 240);
 }
