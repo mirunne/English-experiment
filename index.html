@@ -205,6 +205,10 @@
   #part-two-upload-status[data-state="error"] { color: #b42318; }
   #part-two-upload-status[data-state="success"] { color: #18794e; }
 
+  #part-three-upload-status { font-weight: bold; }
+  #part-three-upload-status[data-state="error"] { color: #b42318; }
+  #part-three-upload-status[data-state="success"] { color: #18794e; }
+
   .device-section h3 {
     margin-top: 0;
   }
@@ -1097,8 +1101,10 @@
   <!-- Completion screen -->
   <div id="speech-complete" hidden>
     <h2>Speech Evaluation complete</h2>
-    <p>Thank you for completing this section. Please proceed to the final part of the experiment: a short questionnaire.</p>
-    <button id="continue-to-questionnaire" type="button">Continue to questionnaire</button>
+    <p>Thank you for completing this section. Your ratings are being saved.</p>
+    <p id="part-three-upload-status" role="status" aria-live="polite" hidden></p>
+    <button id="retry-part-three-upload" type="button" hidden>Retry upload</button>
+    <button id="continue-to-questionnaire" type="button" disabled>Continue to questionnaire</button>
   </div>
 
 </section>
@@ -4264,6 +4270,70 @@ speakerBackButton.addEventListener("click", () => {
 });
 
 
+let partThreeRatingsBlob = null;
+let partThreeUploadInProgress = false;
+
+const partThreeUploadStatus = document.getElementById("part-three-upload-status");
+const retryPartThreeUploadButton = document.getElementById("retry-part-three-upload");
+const continueToQuestionnaireButton = document.getElementById("continue-to-questionnaire");
+
+async function uploadPartThreeRatings() {
+  if (partThreeUploadInProgress) return;
+
+  if (!window.participantId || !window.participantCode || !window.experimentAccessCode) {
+    partThreeUploadStatus.hidden = false;
+    partThreeUploadStatus.dataset.state = "error";
+    partThreeUploadStatus.textContent =
+      "Your participant information or session is unavailable. Please contact the researcher.";
+    retryPartThreeUploadButton.hidden = false;
+    return;
+  }
+
+  if (!partThreeRatingsBlob) {
+    partThreeRatingsBlob = new Blob([JSON.stringify({
+      participantId: window.participantId,
+      participantCode: window.participantCode,
+      task: "Speech Evaluation",
+      ratings: speechEvaluationResponses,
+      collectedAt: new Date().toISOString()
+    }, null, 2)], { type: "application/json" });
+  }
+
+  partThreeUploadInProgress = true;
+  retryPartThreeUploadButton.hidden = true;
+  retryPartThreeUploadButton.disabled = true;
+  continueToQuestionnaireButton.disabled = true;
+  partThreeUploadStatus.hidden = false;
+  partThreeUploadStatus.dataset.state = "";
+  partThreeUploadStatus.textContent = "Saving your Speech Evaluation ratings…";
+
+  try {
+    await uploadBlobToDrive(
+      "part_III_speech_ratings.json",
+      partThreeRatingsBlob,
+      window.participantId,
+      window.participantCode,
+      window.experimentAccessCode
+    );
+
+    partThreeUploadStatus.dataset.state = "success";
+    partThreeUploadStatus.textContent =
+      "Your Speech Evaluation ratings have been saved successfully.";
+    continueToQuestionnaireButton.disabled = false;
+  } catch (error) {
+    partThreeUploadStatus.dataset.state = "error";
+    partThreeUploadStatus.textContent =
+      "Your ratings could not be saved. Please check your internet connection and select Retry upload. Do not close this page yet.";
+    retryPartThreeUploadButton.hidden = false;
+  } finally {
+    partThreeUploadInProgress = false;
+    retryPartThreeUploadButton.disabled = false;
+  }
+}
+
+retryPartThreeUploadButton.addEventListener("click", uploadPartThreeRatings);
+
+
 speakerNextButton.addEventListener("click", () => {
   saveCurrentSpeechSpeakerRatings();
 
@@ -4304,9 +4374,8 @@ speakerNextButton.addEventListener("click", () => {
 
     statusText.textContent = "";
 
-    // This object will be included in the unified Google Drive submission
-    // when the data-collection system is implemented.
     window.speechEvaluationData = speechEvaluationResponses;
+    uploadPartThreeRatings();
 
     speechEvaluationSection.scrollIntoView({
       behavior: "smooth",
