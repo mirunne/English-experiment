@@ -382,27 +382,32 @@ function uploadChunk_(request) {
     throw new Error("The upload chunk has an unexpected size.");
   }
 
-  // Query Drive first so retries do not duplicate already-received bytes.
-  const remote = queryDriveUpload_(session);
+  // A newly created upload session starts at offset 0, so send its first
+  // chunk directly instead of making an extra status request to Drive.
+  // For resumed chunks, query Drive first to avoid retransmitting bytes that
+  // may already have been accepted if a previous response was interrupted.
+  if (offset > 0) {
+    const remote = queryDriveUpload_(session);
 
-  if (remote.expired) {
-    throw new Error("The Google Drive upload session expired. Please restart this upload.");
-  }
+    if (remote.expired) {
+      throw new Error("The Google Drive upload session expired. Please restart this upload.");
+    }
 
-  if (remote.completed) {
-    return {
-      completed: true,
-      fileName: session.fileName,
-      nextOffset: session.fileSize
-    };
-  }
+    if (remote.completed) {
+      return {
+        completed: true,
+        fileName: session.fileName,
+        nextOffset: session.fileSize
+      };
+    }
 
-  if (remote.nextOffset !== offset) {
-    return {
-      completed: false,
-      nextOffset: remote.nextOffset,
-      retryFromOffset: true
-    };
+    if (remote.nextOffset !== offset) {
+      return {
+        completed: false,
+        nextOffset: remote.nextOffset,
+        retryFromOffset: true
+      };
+    }
   }
 
   const end = offset + bytes.length - 1;
