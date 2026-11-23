@@ -116,7 +116,9 @@ function doPost(event) {
 
       let result;
 
-      if (request.action === "beginUpload") {
+      if (request.action === "verifyAccessCode") {
+        result = { verified: true };
+      } else if (request.action === "beginUpload") {
         result = beginUpload_(request);
       } else if (request.action === "uploadChunk") {
         result = uploadChunk_(request);
