@@ -189,6 +189,18 @@
     color: #18794e;
   }
 
+  #part-one-upload-status {
+    font-weight: bold;
+  }
+
+  #part-one-upload-status[data-state="error"] {
+    color: #b42318;
+  }
+
+  #part-one-upload-status[data-state="success"] {
+    color: #18794e;
+  }
+
   .device-section h3 {
     margin-top: 0;
   }
@@ -859,6 +871,11 @@
     <a id="metadata-download">Download word timing information (JSON)</a>
   </p>
 
+  <p id="part-one-upload-status" role="status" aria-live="polite" hidden></p>
+  <button id="retry-part-one-upload" type="button" hidden>
+    Retry upload
+  </button>
+
   <button id="continue-to-reading" type="button">
     Continue to Part II
   </button>
@@ -1226,6 +1243,12 @@ const downloadLink =
 
 const metadataDownload =
   document.getElementById("metadata-download");
+
+const partOneUploadStatus =
+  document.getElementById("part-one-upload-status");
+
+const retryPartOneUploadButton =
+  document.getElementById("retry-part-one-upload");
 
 
 
@@ -1714,13 +1737,14 @@ function getAppsScriptRequestStatus(requestId) {
 }
 
 
-async function sendAuthenticatedAppsScriptRequest(action, accessCode) {
+async function sendAuthenticatedAppsScriptRequest(action, accessCode, extraData = {}) {
   const requestId = createUploadRequestId();
 
   const payload = {
     action,
     requestId,
-    accessCode
+    accessCode,
+    ...extraData
   };
 
   // text/plain is a CORS-safelisted content type; no-cors avoids preflight.
@@ -1749,6 +1773,235 @@ async function sendAuthenticatedAppsScriptRequest(action, accessCode) {
 
   throw new Error("The upload service did not confirm the request. Please try again.");
 }
+
+
+function getOrCreateParticipantId() {
+  const storageKey = "ee_participant_id";
+
+  try {
+    const savedId = sessionStorage.getItem(storageKey);
+    if (/^[a-f0-9]{32}$/i.test(savedId || "")) {
+      return savedId.toLowerCase();
+    }
+  } catch (error) {
+    // A fresh ID will be used if session storage is unavailable.
+  }
+
+  const participantId = createUploadRequestId();
+
+  try {
+    sessionStorage.setItem(storageKey, participantId);
+  } catch (error) {
+    // The ID remains available for the current page even without storage.
+  }
+
+  return participantId;
+}
+
+
+function readBlobAsBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const comma = result.indexOf(",");
+
+      if (comma < 0) {
+        reject(new Error("The recording data could not be prepared for upload."));
+        return;
+      }
+
+      resolve(result.slice(comma + 1));
+    };
+
+    reader.onerror = () => {
+      reject(new Error("The recording data could not be read for upload."));
+    };
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+
+async function uploadBlobToDrive(fileName, blob, participantId, accessCode, onProgress) {
+  if (!(blob instanceof Blob) || blob.size < 1) {
+    throw new Error("The file " + fileName + " is empty or unavailable.");
+  }
+
+  const mimeType = fileName.endsWith(".wav")
+    ? "audio/wav"
+    : "application/json";
+
+  const upload = await sendAuthenticatedAppsScriptRequest(
+    "beginUpload",
+    accessCode,
+    {
+      participantId,
+      fileName,
+      mimeType,
+      fileSize: blob.size
+    }
+  );
+
+  if (upload.alreadyUploaded === true) {
+    if (typeof onProgress === "function") onProgress(blob.size, blob.size);
+    return;
+  }
+
+  if (!upload.uploadId || !Number.isSafeInteger(Number(upload.chunkSize)) ||
+      Number(upload.chunkSize) < 1) {
+    throw new Error("The upload service returned an invalid upload session.");
+  }
+
+  const chunkSize = Number(upload.chunkSize);
+  let offset = Number(upload.nextOffset || 0);
+  let noProgressCount = 0;
+
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > blob.size) {
+    throw new Error("The upload service returned an invalid upload position.");
+  }
+
+  while (offset < blob.size) {
+    const chunk = blob.slice(offset, Math.min(offset + chunkSize, blob.size));
+    const base64Data = await readBlobAsBase64(chunk);
+
+    const result = await sendAuthenticatedAppsScriptRequest(
+      "uploadChunk",
+      accessCode,
+      {
+        uploadId: upload.uploadId,
+        offset,
+        data: base64Data
+      }
+    );
+
+    if (result.completed === true) {
+      offset = blob.size;
+    } else {
+      const nextOffset = Number(result.nextOffset);
+
+      if (!Number.isSafeInteger(nextOffset) ||
+          nextOffset < offset ||
+          nextOffset > blob.size) {
+        throw new Error("The upload service returned an invalid upload position.");
+      }
+
+      if (nextOffset === offset) {
+        noProgressCount++;
+        if (noProgressCount >= 3) {
+          throw new Error("The upload did not progress. Please retry.");
+        }
+      } else {
+        noProgressCount = 0;
+      }
+
+      offset = nextOffset;
+    }
+
+    if (typeof onProgress === "function") {
+      onProgress(offset, blob.size);
+    }
+  }
+}
+
+
+let partOneWavBlob = null;
+let partOneMetadataBlob = null;
+let partOneUploadInProgress = false;
+
+
+async function uploadPartOneBundle() {
+  if (partOneUploadInProgress) return;
+
+  if (!partOneWavBlob || !partOneMetadataBlob ||
+      !window.deviceInfo || !window.participantId) {
+    partOneUploadStatus.hidden = false;
+    partOneUploadStatus.dataset.state = "error";
+    partOneUploadStatus.textContent =
+      "The recording or participant information is unavailable. Please contact the researcher.";
+    return;
+  }
+
+  const accessCode = window.experimentAccessCode;
+  if (!accessCode) {
+    partOneUploadStatus.hidden = false;
+    partOneUploadStatus.dataset.state = "error";
+    partOneUploadStatus.textContent =
+      "Your session has expired. Please reload the experiment and contact the researcher if the problem continues.";
+    return;
+  }
+
+  partOneUploadInProgress = true;
+  retryPartOneUploadButton.hidden = true;
+  retryPartOneUploadButton.disabled = true;
+  continueToReadingButton.disabled = true;
+  partOneUploadStatus.hidden = false;
+  partOneUploadStatus.dataset.state = "";
+  
+  const files = [
+    {
+      name: "participant_device_info.json",
+      blob: new Blob(
+        [JSON.stringify({
+          participantId: window.participantId,
+          ...window.deviceInfo
+        }, null, 2)],
+        { type: "application/json" }
+      ),
+      label: "device information"
+    },
+    {
+      name: "part_I_word_reading.wav",
+      blob: partOneWavBlob,
+      label: "word-reading recording"
+    },
+    {
+      name: "part_I_metadata.json",
+      blob: partOneMetadataBlob,
+      label: "word-timing and recording metadata"
+    }
+  ];
+
+  try {
+    for (const file of files) {
+      partOneUploadStatus.textContent =
+        "Uploading your " + file.label + "…";
+
+      await uploadBlobToDrive(
+        file.name,
+        file.blob,
+        window.participantId,
+        accessCode,
+        (uploaded, total) => {
+          if (file.name === "part_I_word_reading.wav") {
+            const percentage = Math.min(100, Math.round(uploaded / total * 100));
+            partOneUploadStatus.textContent =
+              "Uploading your word-reading recording… " + percentage + "%";
+          }
+        }
+      );
+    }
+
+    partOneUploadStatus.dataset.state = "success";
+    partOneUploadStatus.textContent =
+      "Your Part I recording and associated information have been uploaded successfully.";
+    continueToReadingButton.disabled = false;
+
+  } catch (error) {
+    partOneUploadStatus.dataset.state = "error";
+    partOneUploadStatus.textContent =
+      "Your Part I data could not be uploaded. Please check your internet connection and select Retry upload. Do not close this page yet.";
+    retryPartOneUploadButton.hidden = false;
+
+  } finally {
+    partOneUploadInProgress = false;
+    retryPartOneUploadButton.disabled = false;
+  }
+}
+
+
+retryPartOneUploadButton.addEventListener("click", uploadPartOneBundle);
 
 
 preliminaryForm.addEventListener("submit", async event => {
@@ -1805,6 +2058,7 @@ preliminaryForm.addEventListener("submit", async event => {
     // It is not included in participant research data.
     sessionStorage.setItem("ee_experiment_access_code", accessCode);
     window.experimentAccessCode = accessCode;
+    window.participantId = getOrCreateParticipantId();
     experimentAccessCodeInput.value = accessCode;
 
     accessCodeMessage.dataset.state = "success";
@@ -1831,6 +2085,8 @@ preliminaryForm.addEventListener("submit", async event => {
     : browserUsedSelect.value;
 
   window.deviceInfo = {
+
+    participantId: window.participantId,
 
     phoneModel: phoneModelInput.value,
 
@@ -2732,6 +2988,8 @@ async function finishRecording() {
 
     const metadata = {
 
+      participantId: window.participantId,
+
       task: "English word reading",
 
       sampleRate: sampleRate,
@@ -2751,9 +3009,15 @@ async function finishRecording() {
     };
 
     const metadataBlob = new Blob(
-      [JSON.stringify(metadata, null, 2)],
+      [JSON.stringify({
+        ...metadata,
+        audioDiagnostics: window.audioDiagnostics?.partI || null
+      }, null, 2)],
       { type: "application/json" }
     );
+
+    partOneWavBlob = wav;
+    partOneMetadataBlob = metadataBlob;
 
     metadataUrl =
       URL.createObjectURL(metadataBlob);
@@ -2767,8 +3031,16 @@ async function finishRecording() {
 
     mainTask.hidden = true;
 
+    continueToReadingButton.disabled = true;
+    retryPartOneUploadButton.hidden = true;
+    partOneUploadStatus.hidden = false;
+    partOneUploadStatus.dataset.state = "";
+    partOneUploadStatus.textContent = "Preparing your data for upload…";
+
     statusText.textContent =
       `Recording ready: mono, 24-bit PCM WAV, ${sampleRate} Hz.`;
+
+    await uploadPartOneBundle();
 
   } catch (error) {
 
