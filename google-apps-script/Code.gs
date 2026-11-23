@@ -5,7 +5,7 @@
  * as a web app that executes as the deploying user and permits anonymous access.
  *
  * Public surface:
- *   POST  doPost: beginUpload / uploadChunk only
+ *   POST  doPost: participant registration, beginUpload / uploadChunk
  *   GET   doGet: read-only upload status (JSONP)
  *
  * The script never exposes Drive listing, reading, downloading, or deletion.
@@ -117,7 +117,12 @@ function doPost(event) {
       let result;
 
       if (request.action === "verifyAccessCode") {
-        result = { verified: true };
+        const participantId = String(request.participantId || "").toLowerCase();
+        const registration = registerParticipant_(participantId);
+        result = {
+          verified: true,
+          participantCode: registration.participantCode
+        };
       } else if (request.action === "beginUpload") {
         result = beginUpload_(request);
       } else if (request.action === "uploadChunk") {
@@ -236,12 +241,17 @@ function requireUploadCode_(provided) {
 
 function beginUpload_(request) {
   const participantId = String(request.participantId || "").toLowerCase();
+  const participantCode = String(request.participantCode || "").toUpperCase();
   const fileName = String(request.fileName || "");
   const mimeType = String(request.mimeType || "");
   const fileSize = Number(request.fileSize);
 
   if (!/^[a-f0-9]{32}$/.test(participantId)) {
     throw new Error("Invalid participant ID.");
+  }
+
+  if (!/^[A-Z]{2}[0-9]{2}$/.test(participantCode)) {
+    throw new Error("Invalid participant code.");
   }
 
   if (!Object.prototype.hasOwnProperty.call(EE_CONFIG.ALLOWED_FILES, fileName)) {
@@ -260,7 +270,7 @@ function beginUpload_(request) {
     throw new Error("The file size is outside the permitted limit.");
   }
 
-  const participantFolder = getParticipantFolder_(participantId);
+  const participantFolder = getParticipantFolder_(participantId, participantCode);
   const existingFile = findFileByName_(participantFolder, fileName);
 
   // Prevent duplicate files when a previous upload completed but its acknowledgment was lost.
@@ -489,27 +499,116 @@ function getNextOffset_(headers) {
 }
 
 
-function getParticipantFolder_(participantId) {
-  const properties = PropertiesService.getScriptProperties();
-  const rootId = properties.getProperty("EE_ROOT_FOLDER_ID");
+function getDriveRootFolder_() {
+  const rootId = PropertiesService.getScriptProperties()
+    .getProperty("EE_ROOT_FOLDER_ID");
 
   if (!rootId) {
     throw new Error("The Drive destination has not been configured. The researcher must run setupDriveFolder().");
   }
 
-  const root = DriveApp.getFolderById(rootId);
-  const folderName = "Participant_" + participantId;
+  return DriveApp.getFolderById(rootId);
+}
+
+
+/**
+ * Assigns a permanent, unique two-letter/two-digit research code.
+ * The script lock prevents simultaneous participants from receiving the same code.
+ * The internal UUID is stored in the folder description, not its visible name.
+ */
+function registerParticipant_(participantId) {
+  const id = String(participantId || "").toLowerCase();
+
+  if (!/^[a-f0-9]{32}$/.test(id)) {
+    throw new Error("Invalid participant ID.");
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    const root = getDriveRootFolder_();
+    const internalMarker = "EE_INTERNAL_PARTICIPANT_ID:" + id;
+    const folders = root.getFolders();
+
+    // Return the existing code if this browser session has already registered.
+    while (folders.hasNext()) {
+      const folder = folders.next();
+      if (String(folder.getDescription() || "") === internalMarker) {
+        const match = folder.getName().match(/^Participant_([A-Z]{2}[0-9]{2})$/);
+        if (!match) {
+          throw new Error("The participant's Drive folder has an invalid name.");
+        }
+        return { participantCode: match[1] };
+      }
+    }
+
+    // Preserve data from an earlier UUID-named test folder by renaming it in place.
+    const legacyFolders = root.getFoldersByName("Participant_" + id);
+    if (legacyFolders.hasNext()) {
+      const legacyFolder = legacyFolders.next();
+      const legacyCode = generateUniqueParticipantCode_(root);
+      legacyFolder.setName("Participant_" + legacyCode);
+      legacyFolder.setDescription(internalMarker);
+      return { participantCode: legacyCode };
+    }
+
+    if (countFolders_(root) >= EE_CONFIG.MAX_PARTICIPANT_FOLDERS) {
+      throw new Error("The experiment's participant folder limit has been reached.");
+    }
+
+    const participantCode = generateUniqueParticipantCode_(root);
+    const participantFolder = root.createFolder("Participant_" + participantCode);
+    participantFolder.setDescription(internalMarker);
+
+    return { participantCode: participantCode };
+
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+function generateUniqueParticipantCode_(root) {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  // Every candidate is checked against Drive while the script lock is held.
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const first = letters.charAt(Math.floor(Math.random() * letters.length));
+    const second = letters.charAt(Math.floor(Math.random() * letters.length));
+    const digits = String(Math.floor(Math.random() * 100)).padStart(2, "0");
+    const candidate = first + second + digits;
+
+    if (!root.getFoldersByName("Participant_" + candidate).hasNext()) {
+      return candidate;
+    }
+  }
+
+  throw new Error("A unique participant code could not be allocated. Please try again.");
+}
+
+
+function getParticipantFolder_(participantId, participantCode) {
+  const id = String(participantId || "").toLowerCase();
+  const code = String(participantCode || "").toUpperCase();
+
+  if (!/^[a-f0-9]{32}$/.test(id) || !/^[A-Z]{2}[0-9]{2}$/.test(code)) {
+    throw new Error("Invalid participant identifiers.");
+  }
+
+  const root = getDriveRootFolder_();
+  const folderName = "Participant_" + code;
+  const internalMarker = "EE_INTERNAL_PARTICIPANT_ID:" + id;
   const matches = root.getFoldersByName(folderName);
 
-  if (matches.hasNext()) {
-    return matches.next();
+  while (matches.hasNext()) {
+    const folder = matches.next();
+    if (String(folder.getDescription() || "") === internalMarker) {
+      return folder;
+    }
   }
 
-  if (countFolders_(root) >= EE_CONFIG.MAX_PARTICIPANT_FOLDERS) {
-    throw new Error("The experiment's participant folder limit has been reached.");
-  }
-
-  return root.createFolder(folderName);
+  throw new Error("The participant folder could not be verified. Please reload the experiment and try again.");
 }
 
 
