@@ -15,7 +15,7 @@ const EE_CONFIG = {
   ROOT_FOLDER_NAME: "English Experiment Data",
   MAX_FILE_SIZE: 60 * 1024 * 1024,
   MAX_PARTICIPANT_FOLDERS: 1000,
-  CHUNK_SIZE: 1024 * 1024,
+  CHUNK_SIZE: 4 * 1024 * 1024,
   CACHE_SECONDS: 21600,
   ALLOWED_FILES: {
     "participant_device_info.json": "application/json",
@@ -86,7 +86,7 @@ function doPost(event) {
 
   try {
     const raw = event && event.postData && event.postData.contents;
-    if (!raw || raw.length > 1900000) {
+    if (!raw || raw.length > 6000000) {
       throw new Error("Request body is missing or too large.");
     }
 
@@ -368,7 +368,7 @@ function uploadChunk_(request) {
     throw new Error("Invalid upload position.");
   }
 
-  if (!base64Data || base64Data.length > 1500000) {
+  if (!base64Data || base64Data.length > 5800000) {
     throw new Error("The upload chunk is missing or too large.");
   }
 
