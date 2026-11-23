@@ -2013,6 +2013,29 @@ async function uploadPartOneBundle() {
     partOneUploadStatus.dataset.state = "success";
     partOneUploadStatus.textContent =
       "Your Part I recording and associated information have been uploaded successfully.";
+
+    // Detailed timings are shown only when the researcher adds ?uploadDebug=1.
+    if (new URLSearchParams(window.location.search).get("uploadDebug") === "1") {
+      const diagnosticLines = (window.uploadDiagnosticLog || []).map((entry, index) => {
+        if (!entry.clientTiming) {
+          return (index + 1) + ". " + entry.fileName + ": file " +
+            (entry.fileSize || 0) + " bytes; chunk size " +
+            (entry.chunkSize || 0) + " bytes";
+        }
+        const client = entry.clientTiming;
+        const stages = entry.serverStages || {};
+        return (index + 1) + ". " + entry.fileName + " chunk at " +
+          entry.offset + ": " + entry.chunkBytes + " bytes; preparation " +
+          entry.preparationMs + " ms; POST " + client.postMs + " ms; status wait " +
+          client.statusWaitMs + " ms; Apps Script " +
+          (entry.serverProcessingMs ?? "n/a") + " ms; Drive PUT " +
+          (stages.drivePutMs ?? "n/a") + " ms; base64 decode " +
+          (stages.decodeMs ?? "n/a") + " ms; polls " + client.pollCount;
+      });
+      partOneUploadStatus.textContent += "\\n\\nUPLOAD DIAGNOSTICS (researcher test):\\n" +
+        diagnosticLines.join("\\n");
+    }
+
     continueToReadingButton.disabled = false;
 
   } catch (error) {
