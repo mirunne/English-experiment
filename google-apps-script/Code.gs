@@ -112,6 +112,7 @@ function doPost(event) {
     cache.put(statusKey, JSON.stringify({ state: "working" }), 300);
 
     try {
+      const processingStartedAt = Date.now();
       requireUploadCode_(request.accessCode);
 
       let result;
@@ -129,6 +130,10 @@ function doPost(event) {
         result = uploadChunk_(request);
       } else {
         throw new Error("Unsupported upload action.");
+      }
+
+      if (result && typeof result === "object") {
+        result._serverProcessingMs = Date.now() - processingStartedAt;
       }
 
       cache.put(
@@ -372,7 +377,9 @@ function uploadChunk_(request) {
     throw new Error("The upload chunk is missing or too large.");
   }
 
+  const decodeStartedAt = Date.now();
   const bytes = Utilities.base64Decode(base64Data);
+  const decodeMs = Date.now() - decodeStartedAt;
   const expectedLength = Math.min(
     EE_CONFIG.CHUNK_SIZE,
     session.fileSize - offset
@@ -411,6 +418,7 @@ function uploadChunk_(request) {
   }
 
   const end = offset + bytes.length - 1;
+  const drivePutStartedAt = Date.now();
   const response = UrlFetchApp.fetch(
     session.sessionUrl,
     {
@@ -426,12 +434,19 @@ function uploadChunk_(request) {
     }
   );
 
+  const drivePutMs = Date.now() - drivePutStartedAt;
   const code = response.getResponseCode();
+  const timing = {
+    decodeMs: decodeMs,
+    drivePutMs: drivePutMs,
+    driveHttpStatus: code
+  };
 
   if (code === 308) {
     return {
       completed: false,
-      nextOffset: getNextOffset_(response.getAllHeaders())
+      nextOffset: getNextOffset_(response.getAllHeaders()),
+      _serverStages: timing
     };
   }
 
@@ -439,7 +454,8 @@ function uploadChunk_(request) {
     return {
       completed: true,
       fileName: session.fileName,
-      nextOffset: session.fileSize
+      nextOffset: session.fileSize,
+      _serverStages: timing
     };
   }
 
