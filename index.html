@@ -164,6 +164,19 @@
     display: none;
   }
 
+  #access-code-message {
+    margin: 10px 0 0;
+    font-weight: bold;
+  }
+
+  #access-code-message[data-state="error"] {
+    color: #b42318;
+  }
+
+  #access-code-message[data-state="success"] {
+    color: #18794e;
+  }
+
   .device-section h3 {
     margin-top: 0;
   }
@@ -528,6 +541,23 @@
           disabled
         >
       </div>
+    </div>
+
+    <div class="preliminary-question">
+      <label for="experiment-access-code">
+        4. Enter the experiment access code provided by the researcher.
+      </label>
+      <input
+        type="password"
+        id="experiment-access-code"
+        name="experiment_access_code"
+        placeholder="Access code"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        required
+      >
+      <p id="access-code-message" role="status" aria-live="polite"></p>
     </div>
 
     <button id="preliminary-continue" type="submit" class="primary-action">
@@ -1260,6 +1290,18 @@ const browserOtherWrap =
 const browserOtherInput =
   document.getElementById("browser-other");
 
+const experimentAccessCodeInput =
+  document.getElementById("experiment-access-code");
+
+const accessCodeMessage =
+  document.getElementById("access-code-message");
+
+const preliminaryContinueButton =
+  document.getElementById("preliminary-continue");
+
+const DRIVE_UPLOAD_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbwDICYKDQu0QLWYJCHWgBHPBHywf3F-ER3LgGwxBNFCFnIqX0reeqGRH3nla1a-2ufW/exec";
+
 function compareVersionStrings(actual, minimum) {
 
   const actualParts = String(actual).split(".").map(Number);
@@ -1598,7 +1640,97 @@ browserUsedSelect.addEventListener("change", () => {
 });
 
 
-preliminaryForm.addEventListener("submit", event => {
+// Send a small authenticated request to Apps Script, then poll its
+// JSONP status endpoint. The access code is sent in the POST body, never in a URL.
+function createUploadRequestId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID().replace(/-/g, "");
+  }
+
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+
+function getAppsScriptRequestStatus(requestId) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    let finished = false;
+
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      script.remove();
+      delete window.__eeReceiveUploadStatus;
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("The server did not respond in time."));
+    }, 12000);
+
+    window.__eeReceiveUploadStatus = result => {
+      cleanup();
+      resolve(result);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Could not contact the upload service."));
+    };
+
+    script.src =
+      DRIVE_UPLOAD_ENDPOINT +
+      "?action=status&requestId=" +
+      encodeURIComponent(requestId) +
+      "&callback=__eeReceiveUploadStatus&_=" +
+      Date.now();
+
+    document.head.appendChild(script);
+  });
+}
+
+
+async function sendAuthenticatedAppsScriptRequest(action, accessCode) {
+  const requestId = createUploadRequestId();
+
+  const payload = {
+    action,
+    requestId,
+    accessCode
+  };
+
+  // text/plain is a CORS-safelisted content type; no-cors avoids preflight.
+  await fetch(DRIVE_UPLOAD_ENDPOINT, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "text/plain;charset=UTF-8"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const deadline = Date.now() + 30000;
+
+  while (Date.now() < deadline) {
+    const result = await getAppsScriptRequestStatus(requestId);
+
+    if (result.state === "complete") return result.result;
+
+    if (result.state === "error") {
+      throw new Error(result.message || "The access code could not be verified.");
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 700));
+  }
+
+  throw new Error("The upload service did not confirm the request. Please try again.");
+}
+
+
+preliminaryForm.addEventListener("submit", async event => {
 
   event.preventDefault();
 
@@ -1608,6 +1740,47 @@ preliminaryForm.addEventListener("submit", event => {
   if (!preliminaryForm.checkValidity()) {
     preliminaryForm.reportValidity();
     return;
+  }
+
+  const accessCode = experimentAccessCodeInput.value.trim().toUpperCase();
+
+  preliminaryContinueButton.disabled = true;
+  accessCodeMessage.dataset.state = "";
+  accessCodeMessage.textContent = "Verifying access code…";
+
+  try {
+
+    const verification = await sendAuthenticatedAppsScriptRequest(
+      "verifyAccessCode",
+      accessCode
+    );
+
+    if (!verification || verification.verified !== true) {
+      throw new Error("The access code could not be verified.");
+    }
+
+    // Keep the code only for this browser tab session so it survives refreshes.
+    // It is not included in participant research data.
+    sessionStorage.setItem("ee_experiment_access_code", accessCode);
+    window.experimentAccessCode = accessCode;
+    experimentAccessCodeInput.value = accessCode;
+
+    accessCodeMessage.dataset.state = "success";
+    accessCodeMessage.textContent = "Access code verified.";
+
+  } catch (error) {
+
+    sessionStorage.removeItem("ee_experiment_access_code");
+    window.experimentAccessCode = null;
+
+    accessCodeMessage.dataset.state = "error";
+    accessCodeMessage.textContent =
+      error.message || "The access code is incorrect. Please try again.";
+
+    preliminaryContinueButton.disabled = false;
+    experimentAccessCodeInput.focus();
+    return;
+
   }
 
   const releaseYearUnknown = phoneYearUnknown.checked;
@@ -1661,6 +1834,17 @@ preliminaryForm.addEventListener("submit", event => {
 
 });
 
+
+// Restore the access code across page refreshes in the same tab only.
+try {
+  const savedAccessCode = sessionStorage.getItem("ee_experiment_access_code");
+  if (savedAccessCode) {
+    experimentAccessCodeInput.value = savedAccessCode;
+    window.experimentAccessCode = savedAccessCode;
+  }
+} catch (error) {
+  // If session storage is unavailable, the participant can enter the code again.
+}
 
 initialisePreliminaryScreen();
 
