@@ -349,7 +349,7 @@ function beginUpload_(request) {
     nextOffset: 0
   };
 
-  // Researcher-only trial: the short-lived resumable session URL lets the
+  // Researcher-only trial: the temporary resumable session URL lets the
   // browser upload the binary Blob directly to Drive, bypassing Base64
   // transport through Apps Script. Never include it in normal responses.
   if (request.directUploadTest === true) {
