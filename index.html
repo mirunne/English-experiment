@@ -164,6 +164,18 @@
     display: none;
   }
 
+  .preliminary-error {
+    margin: 10px 0 0;
+    color: #b42318;
+    font-weight: bold;
+  }
+
+  .preliminary-help {
+    margin: 8px 0 0;
+    color: #52606d;
+    font-size: 14px;
+  }
+
   #access-code-message {
     margin: 10px 0 0;
     font-weight: bold;
@@ -513,6 +525,10 @@
         <input type="checkbox" id="phone-year-unknown">
         I'm not sure.
       </label>
+      <p id="phone-year-error" class="preliminary-error" role="alert" hidden></p>
+      <p class="preliminary-help">
+        Only phone models released in 2018 or later are eligible for this experiment.
+      </p>
     </div>
 
     <div class="preliminary-question">
@@ -1281,6 +1297,9 @@ const phoneReleaseYearInput =
 const phoneYearUnknown =
   document.getElementById("phone-year-unknown");
 
+const phoneYearError =
+  document.getElementById("phone-year-error");
+
 const browserUsedSelect =
   document.getElementById("browser-used");
 
@@ -1620,6 +1639,12 @@ phoneYearUnknown.addEventListener("change", () => {
 
   if (phoneYearUnknown.checked) {
     phoneReleaseYearInput.value = "";
+    phoneYearError.hidden = false;
+    phoneYearError.textContent =
+      "You must know the phone model's release year to confirm eligibility. Only phones released in 2018 or later can participate.";
+  } else {
+    phoneYearError.hidden = true;
+    phoneYearError.textContent = "";
   }
 
 });
@@ -1741,6 +1766,27 @@ preliminaryForm.addEventListener("submit", async event => {
     preliminaryForm.reportValidity();
     return;
   }
+
+  const reportedReleaseYear = phoneYearUnknown.checked
+    ? null
+    : Number(phoneReleaseYearInput.value);
+
+  if (phoneYearUnknown.checked || !Number.isInteger(reportedReleaseYear)) {
+    phoneYearError.hidden = false;
+    phoneYearError.textContent =
+      "You must know the phone model's release year to confirm eligibility. Only phones released in 2018 or later can participate.";
+    return;
+  }
+
+  if (reportedReleaseYear < 2018) {
+    phoneYearError.hidden = false;
+    phoneYearError.textContent =
+      "This phone model was released before 2018, so it does not meet the device requirements for this experiment. You cannot continue on this device.";
+    return;
+  }
+
+  phoneYearError.hidden = true;
+  phoneYearError.textContent = "";
 
   const accessCode = experimentAccessCodeInput.value.trim().toUpperCase();
 
