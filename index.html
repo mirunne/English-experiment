@@ -201,6 +201,10 @@
     color: #18794e;
   }
 
+  #part-two-upload-status { font-weight: bold; }
+  #part-two-upload-status[data-state="error"] { color: #b42318; }
+  #part-two-upload-status[data-state="success"] { color: #18794e; }
+
   .device-section h3 {
     margin-top: 0;
   }
@@ -966,7 +970,9 @@
       <p>You can listen to your recording below.</p>
       <audio id="reading-playback" controls></audio>
       <p><a id="reading-download">Download passage recording (24-bit WAV)</a></p>
-      <button id="continue-to-speech-evaluation" type="button">
+      <p id="part-two-upload-status" role="status" aria-live="polite" hidden></p>
+      <button id="retry-part-two-upload" type="button" hidden>Retry upload</button>
+      <button id="continue-to-speech-evaluation" type="button" disabled>
         Continue to Part III
       </button>
     </div>
@@ -1289,6 +1295,12 @@ const readingPlayback =
 
 const readingDownload =
   document.getElementById("reading-download");
+
+const partTwoUploadStatus =
+  document.getElementById("part-two-upload-status");
+
+const retryPartTwoUploadButton =
+  document.getElementById("retry-part-two-upload");
 
 // ============================================
 // PRELIMINARY QUESTIONS AND COMPATIBILITY
@@ -2207,6 +2219,11 @@ let recordingStartedAt = null;
 // ============================================
 
 let readingRecordingUrl = null;
+let partTwoWavBlob = null;
+let partTwoMetadataBlob = null;
+let partTwoRecordingStartedAt = null;
+let partTwoRecordingEndedAt = null;
+let partTwoUploadInProgress = false;
 let readingCountdownTimer = null;
 let readingAttemptStarted = false;
 let wordTimingData = [];
@@ -3118,6 +3135,8 @@ function startReadingCountdown() {
       readingCountdownTimer = null;
 
       // Start recording five seconds after the passage becomes visible.
+      partTwoRecordingStartedAt = new Date().toISOString();
+      partTwoRecordingEndedAt = null;
       workletNode.port.postMessage("start");
 
       recording = true;
@@ -3333,6 +3352,7 @@ readingFinishButton.addEventListener("click", async () => {
 
   const currentWorklet = workletNode;
   const sampleRate = audioContext.sampleRate;
+  partTwoRecordingEndedAt = new Date().toISOString();
 
   recording = false;
 
@@ -3393,6 +3413,8 @@ readingFinishButton.addEventListener("click", async () => {
       sampleRate
     );
 
+    partTwoWavBlob = wav;
+
     const rawLevels =
       measureFloatLevels(samples);
 
@@ -3405,6 +3427,32 @@ readingFinishButton.addEventListener("click", async () => {
       rawLevels,
       wavLevels,
       sampleRate
+    );
+
+    const startMs = partTwoRecordingStartedAt
+      ? new Date(partTwoRecordingStartedAt).getTime()
+      : null;
+    const endMs = partTwoRecordingEndedAt
+      ? new Date(partTwoRecordingEndedAt).getTime()
+      : null;
+
+    partTwoMetadataBlob = new Blob(
+      [JSON.stringify({
+        participantId: window.participantId,
+        participantCode: window.participantCode,
+        task: "English passage reading",
+        recordingStartTime: partTwoRecordingStartedAt,
+        recordingEndTime: partTwoRecordingEndedAt,
+        recordingDurationSeconds:
+          startMs !== null && endMs !== null
+            ? Number(((endMs - startMs) / 1000).toFixed(3))
+            : null,
+        sampleRateHz: sampleRate,
+        format: "Mono, 24-bit PCM WAV",
+        audioDiagnostics: window.audioDiagnostics.partII,
+        collectedAt: new Date().toISOString()
+      }, null, 2)],
+      { type: "application/json" }
     );
 
     if (readingRecordingUrl) {
@@ -3421,9 +3469,17 @@ readingFinishButton.addEventListener("click", async () => {
       "english-passage-reading-24bit.wav";
 
     readingResults.hidden = false;
+    continueToSpeechEvaluationButton.disabled = true;
+    partTwoUploadStatus.hidden = false;
+    partTwoUploadStatus.dataset.state = "";
+    partTwoUploadStatus.textContent =
+      "Your Part II recording is ready. Uploading your recording and associated information…";
+    retryPartTwoUploadButton.hidden = true;
 
     statusText.textContent =
       `Passage recording ready: mono, 24-bit PCM WAV, ${sampleRate} Hz.`;
+
+    uploadPartTwoBundle();
 
   } catch (error) {
 
@@ -3435,6 +3491,77 @@ readingFinishButton.addEventListener("click", async () => {
   }
 
 });
+
+
+// ============================================
+// PART II – GOOGLE DRIVE UPLOAD
+// ============================================
+
+async function uploadPartTwoBundle() {
+  if (partTwoUploadInProgress) return;
+
+  if (!partTwoWavBlob || !partTwoMetadataBlob ||
+      !window.participantId || !window.participantCode) {
+    partTwoUploadStatus.hidden = false;
+    partTwoUploadStatus.dataset.state = "error";
+    partTwoUploadStatus.textContent =
+      "The recording or participant information is unavailable. Please contact the researcher.";
+    return;
+  }
+
+  const accessCode = window.experimentAccessCode;
+  if (!accessCode) {
+    partTwoUploadStatus.hidden = false;
+    partTwoUploadStatus.dataset.state = "error";
+    partTwoUploadStatus.textContent =
+      "Your session has expired. Please reload the experiment and contact the researcher if the problem continues.";
+    return;
+  }
+
+  partTwoUploadInProgress = true;
+  retryPartTwoUploadButton.hidden = true;
+  retryPartTwoUploadButton.disabled = true;
+  continueToSpeechEvaluationButton.disabled = true;
+  partTwoUploadStatus.hidden = false;
+  partTwoUploadStatus.dataset.state = "";
+
+  const files = [
+    { name: "part_II_passage_reading.wav", blob: partTwoWavBlob, label: "passage-reading recording" },
+    { name: "part_II_metadata.json", blob: partTwoMetadataBlob, label: "recording metadata" }
+  ];
+
+  try {
+    for (const file of files) {
+      partTwoUploadStatus.textContent = "Uploading your " + file.label + "…";
+      await uploadBlobToDrive(
+        file.name, file.blob, window.participantId,
+        window.participantCode, accessCode,
+        (uploaded, total) => {
+          if (file.name === "part_II_passage_reading.wav") {
+            const percentage = Math.min(100, Math.round(uploaded / total * 100));
+            partTwoUploadStatus.textContent =
+              "Uploading your passage-reading recording… " + percentage + "%";
+          }
+        }
+      );
+    }
+
+    partTwoUploadStatus.dataset.state = "success";
+    partTwoUploadStatus.textContent =
+      "Your Part II recording and associated information have been uploaded successfully.";
+    continueToSpeechEvaluationButton.disabled = false;
+  } catch (error) {
+    partTwoUploadStatus.dataset.state = "error";
+    partTwoUploadStatus.textContent =
+      "Your Part II data could not be uploaded. Please check your internet connection and select Retry upload. Do not close this page yet.";
+    retryPartTwoUploadButton.hidden = false;
+  } finally {
+    partTwoUploadInProgress = false;
+    retryPartTwoUploadButton.disabled = false;
+  }
+}
+
+retryPartTwoUploadButton.addEventListener("click", uploadPartTwoBundle);
 
 
 // ============================================
