@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+<title>Part II – Visual Layout Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Libre Baskerville", serif;
+    max-width: 700px; margin: 40px auto; padding: 20px;
+    line-height: 1.6; color: #333; background: #f7f7f7;
+  }
+  main { background: white; padding: 28px; border-radius: 12px; }
+  button {
+    padding: 12px 18px; margin: 6px 4px 6px 0; border: 0;
+    border-radius: 6px; background: #243b53; color: white;
+    font: inherit; font-size: 16px; cursor: pointer;
+  }
+  button.secondary { background: #526579; }
+  .note { background: #eaf3ff; border-left: 4px solid #3973a8; padding: 12px 16px; margin: 18px 0; }
+  #preview-task { display: none; }
+  body.part-two-reading {
+    box-sizing: border-box; height: 100vh; height: 100dvh;
+    margin: 0; padding: 6px; max-width: none; overflow: hidden;
+  }
+  body.part-two-reading main {
+    box-sizing: border-box; height: 100%; padding: 8px; border-radius: 8px;
+  }
+  body.part-two-reading #preview-task {
+    display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+  }
+  body.part-two-reading #reading-section-label {
+    flex: 0 0 auto; margin: 2px 0 6px; font-size: 14px;
+    font-weight: bold; text-align: center;
+  }
+  body.part-two-reading #reading-passage {
+    box-sizing: border-box; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; margin: 0 0 6px; padding: 8px 10px;
+    background: #f0f4f8; border-radius: 8px;
+    font-size: 16px; line-height: 1.3;
+  }
+  body.part-two-reading #reading-passage p { margin: 0 0 5px; }
+  body.part-two-reading #reading-passage p:last-child { margin-bottom: 0; }
+  body.part-two-reading #preview-controls {
+    flex: 0 0 auto; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+  }
+  body.part-two-reading button { margin: 2px; padding: 9px 12px; }
+  #fit-status { font-size: 12px; text-align: center; margin: 3px 0 0; color: #526579; }
+  @media (max-height: 700px), (max-width: 380px) {
+    body.part-two-reading #reading-passage {
+      font-size: 15px; line-height: 1.2; padding: 6px 8px;
+    }
+    body.part-two-reading #reading-passage p { margin-bottom: 3px; }
+  }
+  @media (max-width: 480px) {
+    body:not(.part-two-reading) { margin: 0 auto; padding: 12px; }
+    body:not(.part-two-reading) main { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section id="preview-intro">
+    <h1>Part II – Passage reading</h1>
+    <p>This is a visual-only preview of the reading task. It lets you inspect the passages and responsive text layout without requesting microphone access.</p>
+    <div class="note"><strong>Preview mode:</strong> No microphone is accessed, no audio is recorded, and no data is uploaded.</div>
+    <p>Choose <strong>Preview section 1</strong> to see the reading screen. You can switch between both passages using the buttons below.</p>
+    <button id="open-preview" type="button">Preview section 1</button>
+  </section>
+
+  <section id="preview-task" aria-label="Reading passage preview">
+    <p id="reading-section-label">Section 1 of 2</p>
+    <div id="reading-passage">
+      <div id="reading-passage-one">
+        <p>They were walking along the narrow path when Matilda noticed a few birds moving among the trees. Their soft singing filled the quiet air, but apart from that, there was very little to see. She had expected Miss Honey’s home to be different somehow, perhaps larger or more welcoming.</p>
+        <p>“It’s just a farm worker’s cottage,” Miss Honey explained. “You mustn’t expect too much of it. People often think that a home tells you everything about the person who lives there, but that’s not always true.”</p>
+        <p>Matilda looked at her with interest. “There is a question I’d like to ask,” she said.</p>
+        <p>“Of course. You can ask me anything you like.”</p>
+        <p>“How many books have you got in your home?”</p>
+        <p>“You will see.”</p>
+      </div>
+      <div id="reading-passage-two" hidden>
+        <p>Then they came to a green gate in the hedge. Miss Honey paused with one hand on the gate, then opened it, leaving the gate open behind them.</p>
+        <p>The cottage was so small that it looked more like a doll’s house than a real home. Its old red bricks had faded in the sun, and the windows were so narrow that Matilda wondered how much light could possibly enter the rooms. A few plants grew beside the path, while two pretty windows looked out over a green spot.</p>
+        <p>“It’s not much to look at, but it’s where I live, and I’m quite happy here. It’s the perfect place to sleep.”</p>
+        <p><em>(Adapted from Roald Dahl – Matilda)</em></p>
+      </div>
+    </div>
+    <div id="preview-controls">
+      <button id="previous-section" class="secondary" type="button">Section 1</button>
+      <button id="next-section" type="button">Section 2</button>
+      <button id="exit-preview" class="secondary" type="button">Back to instructions</button>
+    </div>
+    <p id="fit-status" role="status" aria-live="polite"></p>
+  </section>
+</main>
+<script>
+"use strict";
+const intro = document.getElementById("preview-intro");
+const task = document.getElementById("preview-task");
+const passage = document.getElementById("reading-passage");
+const passageOne = document.getElementById("reading-passage-one");
+const passageTwo = document.getElementById("reading-passage-two");
+const label = document.getElementById("reading-section-label");
+const fitStatus = document.getElementById("fit-status");
+let currentSection = 1;
+
+function fitPassage() {
+  const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const compact = viewportWidth <= 380 || viewportHeight <= 700;
+  const preferred = compact ? 15 : 16;
+  passage.style.fontSize = preferred + "px";
+  passage.style.lineHeight = compact ? "1.2" : "1.3";
+  const fits = () => passage.scrollHeight <= passage.clientHeight + 1 &&
+    passage.scrollWidth <= passage.clientWidth + 1;
+  if (fits()) return preferred;
+  if (preferred > 15) {
+    for (let size = preferred - 0.25; size >= 15; size -= 0.25) {
+      passage.style.fontSize = size + "px";
+      passage.style.lineHeight = (1.2 + ((size - 15) * 0.1)).toFixed(3);
+      if (fits()) return size;
+    }
+  }
+  passage.style.fontSize = "15px";
+  passage.style.lineHeight = "1.2";
+  if (!fits()) {
+    fitStatus.textContent = "The full passage does not fit at the minimum 15 px text size on this viewport.";
+    fitStatus.style.color = "#b42318";
+    return null;
+  }
+  return 15;
+}
+function showSection(number) {
+  currentSection = number;
+  passageOne.hidden = number !== 1;
+  passageTwo.hidden = number !== 2;
+  label.textContent = "Section " + number + " of 2";
+  document.getElementById("previous-section").disabled = number === 1;
+  document.getElementById("next-section").disabled = number === 2;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const size = fitPassage();
+    if (size !== null) {
+      fitStatus.textContent = "Complete passage fits at " + size.toFixed(2) + " px.";
+      fitStatus.style.color = "#526579";
+    }
+  }));
+}
+document.getElementById("open-preview").addEventListener("click", () => {
+  intro.style.display = "none";
+  task.style.display = "flex";
+  document.body.classList.add("part-two-reading");
+  showSection(1);
+});
+document.getElementById("previous-section").addEventListener("click", () => showSection(1));
+document.getElementById("next-section").addEventListener("click", () => showSection(2));
+document.getElementById("exit-preview").addEventListener("click", () => {
+  document.body.classList.remove("part-two-reading");
+  task.style.display = "none";
+  intro.style.display = "block";
+  fitStatus.textContent = "";
+});
+window.addEventListener("resize", () => {
+  if (document.body.classList.contains("part-two-reading")) showSection(currentSection);
+});
+</script>
+</body>
+</html>
