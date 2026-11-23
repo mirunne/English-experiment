@@ -23,6 +23,10 @@ const EE_CONFIG = {
     "part_I_metadata.json": "application/json",
     "part_II_passage_reading.wav": "audio/wav",
     "part_II_metadata.json": "application/json",
+    "part_II_section_1_reading.wav": "audio/wav",
+    "part_II_section_1_metadata.json": "application/json",
+    "part_II_section_2_reading.wav": "audio/wav",
+    "part_II_section_2_metadata.json": "application/json",
     "part_III_speech_ratings.json": "application/json",
     "part_IV_questionnaire.json": "application/json"
   }
