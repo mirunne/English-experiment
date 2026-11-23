@@ -266,6 +266,82 @@
     font-weight: bold;
   }
 
+  /* Compact, no-scroll reading layout for Part II on phones. */
+  body.part-two-reading {
+    margin: 0;
+    padding: 6px;
+    max-width: none;
+    overflow: hidden;
+  }
+
+  body.part-two-reading main {
+    box-sizing: border-box;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  body.part-two-reading #reading-instructions {
+    margin: 0;
+  }
+
+  body.part-two-reading #reading-task {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  body.part-two-reading #reading-countdown {
+    flex: 0 0 auto;
+    font-size: 16px;
+    min-height: 0;
+    margin: 0 0 5px;
+    padding: 4px;
+    border-width: 1px;
+  }
+
+  body.part-two-reading #reading-passage {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    margin: 0 0 5px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.28;
+  }
+
+  body.part-two-reading #reading-passage p {
+    margin: 0 0 5px;
+  }
+
+  body.part-two-reading #reading-passage p:last-child {
+    margin-bottom: 0;
+  }
+
+  body.part-two-reading #reading-recording-indicator {
+    flex: 0 0 auto;
+    margin: 3px 0;
+    font-size: 14px;
+  }
+
+  body.part-two-reading #reading-finish {
+    flex: 0 0 auto;
+    margin: 3px 0;
+    padding: 9px 12px;
+  }
+
+  @media (max-height: 700px) {
+    body.part-two-reading #reading-passage {
+      font-size: 12px;
+      line-height: 1.2;
+      padding: 6px 8px;
+    }
+
+    body.part-two-reading #reading-passage p {
+      margin-bottom: 3px;
+    }
+  }
+
 
   /* ============================================
      PART III – SPEECH EVALUATION
@@ -3613,6 +3689,7 @@ readingReadyButton.addEventListener("click", async () => {
     // The five-second countdown then starts as the passage becomes visible.
     readingPreparation.hidden = true;
     readingTask.hidden = false;
+    document.body.classList.add("part-two-reading");
 
     statusText.textContent =
       "Get ready to read. Recording starts in five seconds.";
@@ -3635,6 +3712,7 @@ readingReadyButton.addEventListener("click", async () => {
 
     readingPreparation.hidden = false;
     readingTask.hidden = true;
+    document.body.classList.remove("part-two-reading");
     readingReadyButton.disabled = false;
     readingRecordingIndicator.hidden = true;
     readingFinishButton.disabled = true;
@@ -3659,6 +3737,7 @@ readingFinishButton.addEventListener("click", async () => {
   partTwoRecordingEndedAt = new Date().toISOString();
 
   recording = false;
+  document.body.classList.remove("part-two-reading");
 
   readingRecordingIndicator.hidden = true;
   readingFinishButton.disabled = true;
