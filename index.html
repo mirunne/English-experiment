@@ -1865,7 +1865,7 @@ function readBlobAsBase64(blob) {
 }
 
 
-async function uploadBlobToDriveViaAppsScript(fileName, blob, participantId, participantCode, accessCode, onProgress) {
+async function uploadBlobToDriveViaAppsScript(fileName, blob, participantId, participantCode, accessCode, onProgress, existingUpload = null) {
   if (!(blob instanceof Blob) || blob.size < 1) {
     throw new Error("The file " + fileName + " is empty or unavailable.");
   }
@@ -1875,27 +1875,31 @@ async function uploadBlobToDriveViaAppsScript(fileName, blob, participantId, par
     : "application/json";
 
   window.uploadDiagnosticLog = window.uploadDiagnosticLog || [];
-  const beginStartedAt = performance.now();
-  const upload = await sendAuthenticatedAppsScriptRequest(
-    "beginUpload",
-    accessCode,
-    {
-      participantId,
-      participantCode,
-      fileName,
-      mimeType,
-      fileSize: blob.size
-    }
-  );
-  window.uploadDiagnosticLog.push({
-    fileName: fileName,
-    fileSize: blob.size,
-    phase: "beginUpload",
-    clientTiming: upload._clientTiming || null,
-    serverProcessingMs: upload._serverProcessingMs ?? null,
-    elapsedMs: Math.round(performance.now() - beginStartedAt),
-    alreadyUploaded: upload.alreadyUploaded === true
-  });
+  let upload = existingUpload;
+
+  if (!upload) {
+    const beginStartedAt = performance.now();
+    upload = await sendAuthenticatedAppsScriptRequest(
+      "beginUpload",
+      accessCode,
+      {
+        participantId,
+        participantCode,
+        fileName,
+        mimeType,
+        fileSize: blob.size
+      }
+    );
+    window.uploadDiagnosticLog.push({
+      fileName: fileName,
+      fileSize: blob.size,
+      phase: "beginUpload",
+      clientTiming: upload._clientTiming || null,
+      serverProcessingMs: upload._serverProcessingMs ?? null,
+      elapsedMs: Math.round(performance.now() - beginStartedAt),
+      alreadyUploaded: upload.alreadyUploaded === true
+    });
+  }
 
   if (upload.alreadyUploaded === true) {
     if (typeof onProgress === "function") onProgress(blob.size, blob.size);
@@ -2085,18 +2089,75 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
     return;
 
   } catch (directError) {
-    // Keep the experiment operational if the browser or Drive rejects CORS.
-    // The existing Apps Script transport starts a fresh, separate session.
     window.uploadDiagnosticLog.push({
       phase: "direct-put",
       fileName,
       fileSize: blob.size,
-      outcome: "fallback",
+      outcome: "fallback-check",
       error: String(directError && directError.message || directError)
     });
 
+    // A browser may lose the response after Drive has accepted the data.
+    // Check the same session before resuming to avoid creating duplicate files.
+    let remoteStatus;
+    try {
+      remoteStatus = await sendAuthenticatedAppsScriptRequest(
+        "getUploadStatus",
+        accessCode,
+        {
+          uploadId: setup.uploadId,
+          participantId,
+          participantCode
+        }
+      );
+    } catch (statusError) {
+      throw new Error(
+        "The direct upload response was interrupted, and its status could not be verified. " +
+        "Please retry without closing the page. " +
+        String(statusError && statusError.message || statusError)
+      );
+    }
+
+    if (remoteStatus.completed === true) {
+      window.uploadDiagnosticLog.push({
+        phase: "direct-put",
+        fileName,
+        fileSize: blob.size,
+        outcome: "completed-after-response-interruption"
+      });
+      if (typeof onProgress === "function") onProgress(blob.size, blob.size);
+      return;
+    }
+
+    const nextOffset = Number(remoteStatus.nextOffset);
+    if (!Number.isSafeInteger(nextOffset) || nextOffset < 0 || nextOffset >= blob.size) {
+      throw new Error("The direct upload could not be resumed safely. Please retry.");
+    }
+
+    window.uploadDiagnosticLog.push({
+      phase: "direct-put",
+      fileName,
+      fileSize: blob.size,
+      outcome: "resuming-through-apps-script",
+      nextOffset: nextOffset
+    });
+
+    if (typeof onProgress === "function") onProgress(nextOffset, blob.size);
+
     return uploadBlobToDriveViaAppsScript(
-      fileName, blob, participantId, participantCode, accessCode, onProgress
+      fileName,
+      blob,
+      participantId,
+      participantCode,
+      accessCode,
+      onProgress,
+      {
+        uploadId: setup.uploadId,
+        fileName: setup.fileName,
+        chunkSize: setup.chunkSize,
+        nextOffset: nextOffset,
+        alreadyUploaded: false
+      }
     );
   }
 }
@@ -2192,6 +2253,7 @@ async function uploadPartOneBundle() {
           return (index + 1) + ". " + entry.fileName + ": direct upload " +
             entry.outcome + (entry.directPutMs != null ? " in " + entry.directPutMs + " ms" : "") +
             (entry.httpStatus ? "; HTTP " + entry.httpStatus : "") +
+            (entry.nextOffset != null ? "; resumed at byte " + entry.nextOffset : "") +
             (entry.error ? "; " + entry.error : "");
         }
         if (entry.phase === "direct-session") {
