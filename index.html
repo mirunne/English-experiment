@@ -2025,8 +2025,10 @@ function uploadBlobDirectToDrive(uploadUrl, blob, onProgress) {
 
 
 async function uploadBlobToDrive(fileName, blob, participantId, participantCode, accessCode, onProgress) {
+  // Direct binary uploads are now the default for every experiment part.
+  // Add ?directUploadTest=0 to temporarily use the legacy Apps Script route.
   const directTestEnabled =
-    new URLSearchParams(window.location.search).get("directUploadTest") === "1";
+    new URLSearchParams(window.location.search).get("directUploadTest") !== "0";
 
   if (!directTestEnabled) {
     return uploadBlobToDriveViaAppsScript(
