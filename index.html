@@ -1398,6 +1398,9 @@ const readingTask =
 const readingSectionLabel =
   document.getElementById("reading-section-label");
 
+const readingPassage =
+  document.getElementById("reading-passage");
+
 const readingPassageOne =
   document.getElementById("reading-passage-one");
 
@@ -3546,6 +3549,62 @@ continueToReadingButton.addEventListener("click", () => {
 });
 
 
+function fitCurrentReadingPassage() {
+
+  // Start from a size appropriate to the available viewport, then verify
+  // the actual rendered content rather than relying on device model names.
+  const viewportWidth = window.visualViewport
+    ? window.visualViewport.width
+    : window.innerWidth;
+  const viewportHeight = window.visualViewport
+    ? window.visualViewport.height
+    : window.innerHeight;
+
+  const compactScreen =
+    viewportWidth <= 380 || viewportHeight <= 700;
+
+  const preferredSize = compactScreen ? 15 : 16;
+  const preferredLineHeight = compactScreen ? 1.2 : 1.3;
+  const activePassage = currentReadingSection === 1
+    ? readingPassageOne
+    : readingPassageTwo;
+
+  readingPassage.style.fontSize = preferredSize + "px";
+  readingPassage.style.lineHeight = String(preferredLineHeight);
+
+  // Allow the browser to apply the selected styles before measuring.
+  const fits = () =>
+    readingPassage.scrollHeight <= readingPassage.clientHeight + 1 &&
+    readingPassage.scrollWidth <= readingPassage.clientWidth + 1;
+
+  if (fits()) return preferredSize;
+
+  // On taller/wider screens, try intermediate sizes down to 15px.
+  // Never reduce the passage below 15 CSS pixels.
+  if (preferredSize > 15) {
+    for (let size = preferredSize - 0.25; size >= 15; size -= 0.25) {
+      const lineHeight = 1.2 + ((size - 15) * 0.1);
+      readingPassage.style.fontSize = size + "px";
+      readingPassage.style.lineHeight = lineHeight.toFixed(3);
+
+      if (fits()) return size;
+    }
+  }
+
+  // Restore the minimum readable setting if it still does not fit.
+  readingPassage.style.fontSize = "15px";
+  readingPassage.style.lineHeight = "1.2";
+
+  if (!fits()) {
+    throw new Error(
+      "This screen does not have enough space to display the complete passage at the minimum text size of 15 px. Please increase your browser's available screen area or contact the researcher. Recording has not started."
+    );
+  }
+
+  return 15;
+}
+
+
 function startReadingCountdown() {
 
   let countdownValue = 5;
@@ -3755,10 +3814,37 @@ async function startCurrentReadingSection() {
     document.body.classList.add("part-two-reading");
 
     statusText.textContent =
-      "Get ready to read. Recording starts in five seconds.";
+      "Checking the passage display before recording…";
 
+    // Wait for layout to settle, then verify that the complete section is
+    // visible without scrolling or clipping before starting the countdown.
     window.requestAnimationFrame(() => {
-      startReadingCountdown();
+      window.requestAnimationFrame(() => {
+        try {
+          const fittedSize = fitCurrentReadingPassage();
+          statusText.textContent =
+            "The complete section fits on your screen at " +
+            fittedSize.toFixed(2) +
+            " px. Recording starts in five seconds.";
+          startReadingCountdown();
+        } catch (fitError) {
+          (async () => {
+            await cleanUpRecorder();
+            starting = false;
+            readingAttemptStarted = false;
+            readingPreparation.hidden = false;
+            readingTask.hidden = true;
+            document.body.classList.remove("part-two-reading");
+            readingReadyButton.disabled = false;
+            readingReadyButton.textContent =
+              currentReadingSection === 1 ? "Ready" : "Retry section 2";
+            readingRecordingIndicator.hidden = true;
+            readingFinishButton.disabled = true;
+            readingCountdown.textContent = "";
+            statusText.textContent = fitError.message;
+          })();
+        }
+      });
     });
 
   } catch (error) {
