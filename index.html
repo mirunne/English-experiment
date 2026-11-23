@@ -1763,6 +1763,7 @@ function getAppsScriptRequestStatus(requestId) {
 
 async function sendAuthenticatedAppsScriptRequest(action, accessCode, extraData = {}) {
   const requestId = createUploadRequestId();
+  const requestStartedAt = performance.now();
 
   const payload = {
     action,
@@ -1771,6 +1772,7 @@ async function sendAuthenticatedAppsScriptRequest(action, accessCode, extraData 
     ...extraData
   };
 
+  const postStartedAt = performance.now();
   // text/plain is a CORS-safelisted content type; no-cors avoids preflight.
   await fetch(DRIVE_UPLOAD_ENDPOINT, {
     method: "POST",
@@ -1780,13 +1782,28 @@ async function sendAuthenticatedAppsScriptRequest(action, accessCode, extraData 
     },
     body: JSON.stringify(payload)
   });
+  const postMs = performance.now() - postStartedAt;
 
   const deadline = Date.now() + 30000;
+  let pollCount = 0;
+  let statusWaitMs = 0;
 
   while (Date.now() < deadline) {
+    const pollStartedAt = performance.now();
     const result = await getAppsScriptRequestStatus(requestId);
+    statusWaitMs += performance.now() - pollStartedAt;
+    pollCount++;
 
-    if (result.state === "complete") return result.result;
+    if (result.state === "complete") {
+      const output = result.result || {};
+      output._clientTiming = {
+        postMs: Math.round(postMs),
+        statusWaitMs: Math.round(statusWaitMs),
+        pollCount: pollCount,
+        totalRequestMs: Math.round(performance.now() - requestStartedAt)
+      };
+      return output;
+    }
 
     if (result.state === "error") {
       throw new Error(result.message || "The access code could not be verified.");
@@ -1857,6 +1874,8 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
     ? "audio/wav"
     : "application/json";
 
+  window.uploadDiagnosticLog = window.uploadDiagnosticLog || [];
+  const beginStartedAt = performance.now();
   const upload = await sendAuthenticatedAppsScriptRequest(
     "beginUpload",
     accessCode,
@@ -1868,6 +1887,15 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
       fileSize: blob.size
     }
   );
+  window.uploadDiagnosticLog.push({
+    fileName: fileName,
+    fileSize: blob.size,
+    phase: "beginUpload",
+    clientTiming: upload._clientTiming || null,
+    serverProcessingMs: upload._serverProcessingMs ?? null,
+    elapsedMs: Math.round(performance.now() - beginStartedAt),
+    alreadyUploaded: upload.alreadyUploaded === true
+  });
 
   if (upload.alreadyUploaded === true) {
     if (typeof onProgress === "function") onProgress(blob.size, blob.size);
@@ -1888,8 +1916,11 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
   }
 
   while (offset < blob.size) {
+    const chunkOffset = offset;
     const chunk = blob.slice(offset, Math.min(offset + chunkSize, blob.size));
+    const preparationStartedAt = performance.now();
     const base64Data = await readBlobAsBase64(chunk);
+    const preparationMs = Math.round(performance.now() - preparationStartedAt);
 
     const result = await sendAuthenticatedAppsScriptRequest(
       "uploadChunk",
@@ -1900,6 +1931,18 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
         data: base64Data
       }
     );
+
+    window.uploadDiagnosticLog.push({
+      fileName: fileName,
+      fileSize: blob.size,
+      chunkSize: chunkSize,
+      offset: chunkOffset,
+      chunkBytes: chunk.size,
+      preparationMs: preparationMs,
+      clientTiming: result._clientTiming || null,
+      serverProcessingMs: result._serverProcessingMs ?? null,
+      serverStages: result._serverStages || {}
+    });
 
     if (result.completed === true) {
       offset = blob.size;
@@ -2032,8 +2075,8 @@ async function uploadPartOneBundle() {
           (stages.drivePutMs ?? "n/a") + " ms; base64 decode " +
           (stages.decodeMs ?? "n/a") + " ms; polls " + client.pollCount;
       });
-      partOneUploadStatus.textContent += "\\n\\nUPLOAD DIAGNOSTICS (researcher test):\\n" +
-        diagnosticLines.join("\\n");
+      partOneUploadStatus.textContent += "\n\nUPLOAD DIAGNOSTICS (researcher test):\n" +
+        (diagnosticLines.length ? diagnosticLines.join("\n") : "No diagnostic entries were collected.");
     }
 
     continueToReadingButton.disabled = false;
