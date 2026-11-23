@@ -339,13 +339,22 @@ function beginUpload_(request) {
     EE_CONFIG.CACHE_SECONDS
   );
 
-  return {
+  const uploadResult = {
     alreadyUploaded: false,
     uploadId: uploadId,
     fileName: fileName,
     chunkSize: EE_CONFIG.CHUNK_SIZE,
     nextOffset: 0
   };
+
+  // Researcher-only trial: the short-lived resumable session URL lets the
+  // browser upload the binary Blob directly to Drive, bypassing Base64
+  // transport through Apps Script. Never include it in normal responses.
+  if (request.directUploadTest === true) {
+    uploadResult.uploadUrl = String(location);
+  }
+
+  return uploadResult;
 }
 
 
