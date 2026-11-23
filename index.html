@@ -1792,7 +1792,7 @@ async function sendAuthenticatedAppsScriptRequest(action, accessCode, extraData 
       throw new Error(result.message || "The access code could not be verified.");
     }
 
-    await new Promise(resolve => setTimeout(resolve, 700));
+    await new Promise(resolve => setTimeout(resolve, 400));
   }
 
   throw new Error("The upload service did not confirm the request. Please try again.");
