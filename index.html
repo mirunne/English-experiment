@@ -526,9 +526,6 @@
         I'm not sure.
       </label>
       <p id="phone-year-error" class="preliminary-error" role="alert" hidden></p>
-      <p class="preliminary-help">
-        Only phone models released in 2018 or later are eligible for this experiment.
-      </p>
     </div>
 
     <div class="preliminary-question">
@@ -1641,7 +1638,7 @@ phoneYearUnknown.addEventListener("change", () => {
     phoneReleaseYearInput.value = "";
     phoneYearError.hidden = false;
     phoneYearError.textContent =
-      "You must know the phone model's release year to confirm eligibility. Only phones released in 2018 or later can participate.";
+      "Please enter the phone model's release year to confirm whether your device is eligible.";
   } else {
     phoneYearError.hidden = true;
     phoneYearError.textContent = "";
@@ -1774,14 +1771,14 @@ preliminaryForm.addEventListener("submit", async event => {
   if (phoneYearUnknown.checked || !Number.isInteger(reportedReleaseYear)) {
     phoneYearError.hidden = false;
     phoneYearError.textContent =
-      "You must know the phone model's release year to confirm eligibility. Only phones released in 2018 or later can participate.";
+      "Please enter the phone model's release year to confirm whether your device is eligible.";
     return;
   }
 
   if (reportedReleaseYear < 2018) {
     phoneYearError.hidden = false;
     phoneYearError.textContent =
-      "This phone model was released before 2018, so it does not meet the device requirements for this experiment. You cannot continue on this device.";
+      "This device is too old to be used for this experiment.";
     return;
   }
 
