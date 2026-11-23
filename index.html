@@ -4582,6 +4582,8 @@ speakerNextButton.addEventListener("click", () => {
       responses: data,
       collectedAt: new Date().toISOString()
     }, null, 2)], {type:"application/json"});
+    // Freeze the submitted answers so a retry sends the exact same response set.
+    form.querySelectorAll("input").forEach(input => { input.disabled = true; });
     uploadQuestionnaireData();
   });
 })();
