@@ -268,6 +268,9 @@
 
   /* Compact, no-scroll reading layout for Part II on phones. */
   body.part-two-reading {
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
     margin: 0;
     padding: 6px;
     max-width: none;
@@ -276,18 +279,26 @@
 
   body.part-two-reading main {
     box-sizing: border-box;
+    height: 100%;
     padding: 8px;
     border-radius: 8px;
   }
 
   body.part-two-reading #reading-instructions {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     margin: 0;
+    min-height: 0;
   }
 
   body.part-two-reading #reading-task {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
+    height: 100%;
     min-height: 0;
+    overflow: hidden;
   }
 
   body.part-two-reading #reading-countdown {
