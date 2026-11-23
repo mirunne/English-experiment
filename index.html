@@ -447,6 +447,9 @@
 #questionnaire-section .q-followup[hidden]{display:none}
 #questionnaire-section h3{margin-top:30px;padding-bottom:6px;border-bottom:1px solid #d9e2ec}
 #questionnaire-validation{color:#8a3b12;font-weight:bold}
+#questionnaire-upload-status{font-weight:bold;margin-top:12px}
+#questionnaire-upload-status[data-state="error"]{color:#b42318}
+#questionnaire-upload-status[data-state="success"]{color:#18794e}
 #questionnaire-section .frequency-row{box-sizing:border-box;width:100%;min-width:0;background:white;padding:14px;border-radius:7px;margin:12px 0;overflow-wrap:anywhere}
 #questionnaire-section .frequency-row-label{display:block;margin:0 0 10px;font-weight:bold}
 #questionnaire-section .frequency-row .q-choice{margin:10px 0}
@@ -1116,7 +1119,9 @@
   <form id="questionnaire-form" novalidate>
     <div id="questionnaire-content"></div>
     <p id="questionnaire-validation" role="alert" hidden>Please answer all required questions before submitting the questionnaire.</p>
-    <button type="submit">Submit questionnaire</button>
+    <button id="questionnaire-submit" type="submit">Submit questionnaire</button>
+    <p id="questionnaire-upload-status" role="status" aria-live="polite" hidden></p>
+    <button id="questionnaire-retry-upload" type="button" hidden>Retry upload</button>
   </form>
   <div id="questionnaire-thanks" hidden>
     <h2>Thank you for your participation.</h2>
@@ -4487,6 +4492,68 @@ speakerNextButton.addEventListener("click", () => {
     section.scrollIntoView({behavior:"smooth",block:"start"});
   });
 
+  let questionnaireSubmissionBlob = null;
+  let questionnaireUploadInProgress = false;
+  const submitButton = document.getElementById("questionnaire-submit");
+  const uploadStatus = document.getElementById("questionnaire-upload-status");
+  const retryUploadButton = document.getElementById("questionnaire-retry-upload");
+
+  async function uploadQuestionnaireData() {
+    if (questionnaireUploadInProgress) return;
+
+    if (!questionnaireSubmissionBlob) {
+      uploadStatus.hidden = false;
+      uploadStatus.dataset.state = "error";
+      uploadStatus.textContent = "Your questionnaire responses are not ready to upload. Please contact the researcher.";
+      retryUploadButton.hidden = false;
+      return;
+    }
+
+    if (!window.participantId || !window.participantCode || !window.experimentAccessCode) {
+      uploadStatus.hidden = false;
+      uploadStatus.dataset.state = "error";
+      uploadStatus.textContent = "Your participant information or session is unavailable. Please contact the researcher.";
+      retryUploadButton.hidden = false;
+      return;
+    }
+
+    questionnaireUploadInProgress = true;
+    submitButton.disabled = true;
+    retryUploadButton.hidden = true;
+    retryUploadButton.disabled = true;
+    uploadStatus.hidden = false;
+    uploadStatus.dataset.state = "";
+    uploadStatus.textContent = "Saving your questionnaire responses…";
+
+    try {
+      await uploadBlobToDrive(
+        "part_IV_questionnaire.json",
+        questionnaireSubmissionBlob,
+        window.participantId,
+        window.participantCode,
+        window.experimentAccessCode
+      );
+
+      uploadStatus.dataset.state = "success";
+      uploadStatus.textContent = "Your questionnaire responses have been saved successfully.";
+      const participantCodeValue = document.getElementById("participant-code-value");
+      participantCodeValue.textContent = window.participantCode || "Unavailable";
+      form.hidden = true;
+      thanks.hidden = false;
+      statusText.textContent = "";
+      section.scrollIntoView({behavior:"smooth",block:"start"});
+    } catch (error) {
+      uploadStatus.dataset.state = "error";
+      uploadStatus.textContent = "Your questionnaire could not be uploaded. Please check your internet connection and select Retry upload. Do not close or refresh this page yet.";
+      retryUploadButton.hidden = false;
+    } finally {
+      questionnaireUploadInProgress = false;
+      retryUploadButton.disabled = false;
+    }
+  }
+
+  retryUploadButton.addEventListener("click", uploadQuestionnaireData);
+
   form.addEventListener("submit",event=>{
     event.preventDefault();
     updateConditions();
@@ -4508,12 +4575,14 @@ speakerNextButton.addEventListener("click", () => {
     const data={};
     new FormData(form).forEach((value,key)=>{if(Object.prototype.hasOwnProperty.call(data,key)){if(!Array.isArray(data[key]))data[key]=[data[key]];data[key].push(value);}else data[key]=value;});
     window.questionnaireData=data;
-    form.hidden=true;
-    const participantCodeValue = document.getElementById("participant-code-value");
-    participantCodeValue.textContent = window.participantCode || "Unavailable";
-    thanks.hidden=false;
-    statusText.textContent="";
-    section.scrollIntoView({behavior:"smooth",block:"start"});
+    questionnaireSubmissionBlob = new Blob([JSON.stringify({
+      participantId: window.participantId,
+      participantCode: window.participantCode,
+      task: "English Pronunciation and Language Experience Questionnaire",
+      responses: data,
+      collectedAt: new Date().toISOString()
+    }, null, 2)], {type:"application/json"});
+    uploadQuestionnaireData();
   });
 })();
 
