@@ -1865,7 +1865,7 @@ function readBlobAsBase64(blob) {
 }
 
 
-async function uploadBlobToDrive(fileName, blob, participantId, participantCode, accessCode, onProgress) {
+async function uploadBlobToDriveViaAppsScript(fileName, blob, participantId, participantCode, accessCode, onProgress) {
   if (!(blob instanceof Blob) || blob.size < 1) {
     throw new Error("The file " + fileName + " is empty or unavailable.");
   }
@@ -1974,6 +1974,134 @@ async function uploadBlobToDrive(fileName, blob, participantId, participantCode,
 }
 
 
+function uploadBlobDirectToDrive(uploadUrl, blob, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl, true);
+    xhr.timeout = 180000;
+    xhr.responseType = "text";
+
+    // Use an empty Blob type so the browser does not add a Content-Type
+    // header. The Drive resumable session already has the file's MIME type.
+    const requestBody = new Blob([blob], { type: "" });
+
+    xhr.upload.addEventListener("progress", event => {
+      if (typeof onProgress === "function" && event.lengthComputable) {
+        onProgress(event.loaded, event.total);
+      }
+    });
+
+    xhr.onload = () => {
+      if (xhr.status === 200 || xhr.status === 201) {
+        resolve({ status: xhr.status });
+      } else {
+        reject(new Error("Direct Google Drive upload returned HTTP " + xhr.status + "."));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("The browser could not complete a direct connection to Google Drive (network or CORS restriction)."));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error("The direct Google Drive upload timed out."));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error("The direct Google Drive upload was interrupted."));
+    };
+
+    try {
+      xhr.send(requestBody);
+    } catch (error) {
+      reject(new Error("The direct Google Drive upload could not be started: " + error.message));
+    }
+  });
+}
+
+
+async function uploadBlobToDrive(fileName, blob, participantId, participantCode, accessCode, onProgress) {
+  const directTestEnabled =
+    new URLSearchParams(window.location.search).get("directUploadTest") === "1";
+
+  if (!directTestEnabled) {
+    return uploadBlobToDriveViaAppsScript(
+      fileName, blob, participantId, participantCode, accessCode, onProgress
+    );
+  }
+
+  const mimeType = fileName.endsWith(".wav") ? "audio/wav" : "application/json";
+  window.uploadDiagnosticLog = window.uploadDiagnosticLog || [];
+
+  try {
+    const setup = await sendAuthenticatedAppsScriptRequest(
+      "beginUpload",
+      accessCode,
+      {
+        participantId,
+        participantCode,
+        fileName,
+        mimeType,
+        fileSize: blob.size,
+        directUploadTest: true
+      }
+    );
+
+    window.uploadDiagnosticLog.push({
+      phase: "direct-session",
+      fileName,
+      fileSize: blob.size,
+      clientTiming: setup._clientTiming || null,
+      serverProcessingMs: setup._serverProcessingMs ?? null,
+      alreadyUploaded: setup.alreadyUploaded === true
+    });
+
+    if (setup.alreadyUploaded === true) {
+      if (typeof onProgress === "function") onProgress(blob.size, blob.size);
+      return;
+    }
+
+    if (typeof setup.uploadUrl !== "string" ||
+        !setup.uploadUrl.startsWith("https://")) {
+      throw new Error("The upload service did not provide a valid direct-upload session.");
+    }
+
+    const startedAt = performance.now();
+    const result = await uploadBlobDirectToDrive(
+      setup.uploadUrl,
+      blob,
+      onProgress
+    );
+
+    window.uploadDiagnosticLog.push({
+      phase: "direct-put",
+      fileName,
+      fileSize: blob.size,
+      directPutMs: Math.round(performance.now() - startedAt),
+      httpStatus: result.status,
+      outcome: "success"
+    });
+
+    return;
+
+  } catch (directError) {
+    // Keep the experiment operational if the browser or Drive rejects CORS.
+    // The existing Apps Script transport starts a fresh, separate session.
+    window.uploadDiagnosticLog.push({
+      phase: "direct-put",
+      fileName,
+      fileSize: blob.size,
+      outcome: "fallback",
+      error: String(directError && directError.message || directError)
+    });
+
+    return uploadBlobToDriveViaAppsScript(
+      fileName, blob, participantId, participantCode, accessCode, onProgress
+    );
+  }
+}
+
+
 let partOneWavBlob = null;
 let partOneMetadataBlob = null;
 let partOneUploadInProgress = false;
@@ -2060,6 +2188,26 @@ async function uploadPartOneBundle() {
     // Detailed timings are shown only when the researcher adds ?uploadDebug=1.
     if (new URLSearchParams(window.location.search).get("uploadDebug") === "1") {
       const diagnosticLines = (window.uploadDiagnosticLog || []).map((entry, index) => {
+        if (entry.phase === "direct-put") {
+          return (index + 1) + ". " + entry.fileName + ": direct upload " +
+            entry.outcome + (entry.directPutMs != null ? " in " + entry.directPutMs + " ms" : "") +
+            (entry.httpStatus ? "; HTTP " + entry.httpStatus : "") +
+            (entry.error ? "; " + entry.error : "");
+        }
+        if (entry.phase === "direct-session") {
+          return (index + 1) + ". " + entry.fileName + ": direct session; POST " +
+            (entry.clientTiming?.postMs ?? "n/a") + " ms; status wait " +
+            (entry.clientTiming?.statusWaitMs ?? "n/a") + " ms; Apps Script " +
+            (entry.serverProcessingMs ?? "n/a") + " ms; already uploaded " +
+            Boolean(entry.alreadyUploaded);
+        }
+        if (entry.phase === "beginUpload") {
+          return (index + 1) + ". " + entry.fileName + ": standard session; POST " +
+            (entry.clientTiming?.postMs ?? "n/a") + " ms; status wait " +
+            (entry.clientTiming?.statusWaitMs ?? "n/a") + " ms; Apps Script " +
+            (entry.serverProcessingMs ?? "n/a") + " ms; already uploaded " +
+            Boolean(entry.alreadyUploaded);
+        }
         if (!entry.clientTiming) {
           return (index + 1) + ". " + entry.fileName + ": file " +
             (entry.fileSize || 0) + " bytes; chunk size " +
