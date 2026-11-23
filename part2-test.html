@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+<title>Part II – Passage Reading Test</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Libre Baskerville", serif;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 20px;
+    line-height: 1.6;
+    color: #333;
+    background: #f7f7f7;
+  }
+  main { background: white; padding: 28px; border-radius: 12px; }
+  button {
+    padding: 12px 18px; margin: 6px 4px 6px 0; border: 0;
+    border-radius: 6px; background: #243b53; color: white;
+    font: inherit; font-size: 16px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  audio { display: block; width: 100%; margin: 16px 0; }
+  #status { font-weight: bold; }
+  .note {
+    background: #fff8e6; border-left: 4px solid #d69e2e;
+    padding: 12px 16px; margin: 18px 0;
+  }
+  #reading-passage {
+    background: #f0f4f8; padding: 20px; border-radius: 8px;
+    margin: 20px 0; line-height: 1.8;
+  }
+  #reading-countdown {
+    font-size: 32px; font-weight: bold; text-align: center;
+    margin: 20px 0; padding: 16px; background: #fff8e6;
+    border: 2px solid #d69e2e; border-radius: 8px; min-height: 48px;
+  }
+  #reading-recording-indicator { color: #b42318; font-weight: bold; }
+  .result-panel {
+    background: #f0f4f8; border-radius: 8px; padding: 18px; margin-top: 18px;
+  }
+  .result-panel a { display: inline-block; margin: 6px 0; }
+  body.part-two-reading {
+    box-sizing: border-box; height: 100vh; height: 100dvh;
+    margin: 0; padding: 6px; max-width: none; overflow: hidden;
+  }
+  body.part-two-reading main {
+    box-sizing: border-box; height: 100%; padding: 8px; border-radius: 8px;
+  }
+  body.part-two-reading #reading-instructions {
+    display: flex; flex-direction: column; height: 100%; margin: 0; min-height: 0;
+  }
+  body.part-two-reading #reading-task {
+    display: flex; flex: 1 1 auto; flex-direction: column;
+    height: 100%; min-height: 0; overflow: hidden;
+  }
+  body.part-two-reading #reading-countdown {
+    flex: 0 0 auto; font-size: 16px; min-height: 0;
+    margin: 0 0 5px; padding: 4px; border-width: 1px;
+  }
+  body.part-two-reading #reading-section-label {
+    flex: 0 0 auto; margin: 2px 0 4px; font-size: 14px;
+    font-weight: bold; text-align: center;
+  }
+  body.part-two-reading #reading-passage {
+    box-sizing: border-box; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; margin: 0 0 5px; padding: 8px 10px;
+    font-size: 16px; line-height: 1.3;
+  }
+  body.part-two-reading #reading-passage p { margin: 0 0 5px; }
+  body.part-two-reading #reading-passage p:last-child { margin-bottom: 0; }
+  body.part-two-reading #reading-recording-indicator {
+    flex: 0 0 auto; margin: 3px 0; font-size: 14px;
+  }
+  body.part-two-reading #reading-finish {
+    flex: 0 0 auto; margin: 3px 0; padding: 9px 12px;
+  }
+  @media (max-height: 700px), (max-width: 380px) {
+    body.part-two-reading #reading-passage {
+      font-size: 15px; line-height: 1.2; padding: 6px 8px;
+    }
+    body.part-two-reading #reading-passage p { margin-bottom: 3px; }
+  }
+  @media (max-width: 480px) {
+    body:not(.part-two-reading) { margin: 0 auto; padding: 12px; }
+    body:not(.part-two-reading) main { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section id="reading-instructions">
+    <div id="reading-preparation">
+      <h1>Part II – Passage reading</h1>
+      <p>This is a standalone test of the passage-reading task. You will read a short text aloud. The passage is divided into <strong>two parts</strong>, and each part will be recorded separately.</p>
+      <ul>
+        <li>Read each section from beginning to end, at your normal speaking speed and as naturally as possible.</li>
+        <li>If you make a mistake, simply continue reading.</li>
+        <li>Do not touch or move your phone while you are reading.</li>
+      </ul>
+      <p>Press <strong>Ready</strong> when you are prepared. The text will appear on the screen, followed by a five-second countdown before recording starts automatically.</p>
+      <p>When you finish reading, press <strong>Finish recording</strong>. You will be able to listen to and download the recording before moving to the next section.</p>
+      <div class="note"><strong>Recording format:</strong> mono, 24-bit PCM WAV. The browser will request microphone access. No recording is uploaded or sent anywhere by this test page.</div>
+      <button id="reading-ready" type="button">Ready</button>
+    </div>
+
+    <div id="reading-task" hidden>
+      <p id="reading-section-label">Section 1 of 2</p>
+      <p id="reading-countdown" aria-live="polite"></p>
+      <div id="reading-passage">
+        <div id="reading-passage-one">
+          <p>They were walking along the narrow path when Matilda noticed a few birds moving among the trees. Their soft singing filled the quiet air, but apart from that, there was very little to see. She had expected Miss Honey’s home to be different somehow, perhaps larger or more welcoming.</p>
+          <p>“It’s just a farm worker’s cottage,” Miss Honey explained. “You mustn’t expect too much of it. People often think that a home tells you everything about the person who lives there, but that’s not always true.”</p>
+          <p>Matilda looked at her with interest. “There is a question I’d like to ask,” she said.</p>
+          <p>“Of course. You can ask me anything you like.”</p>
+          <p>“How many books have you got in your home?”</p>
+          <p>“You will see.”</p>
+        </div>
+        <div id="reading-passage-two" hidden>
+          <p>Then they came to a green gate in the hedge. Miss Honey paused with one hand on the gate, then opened it, leaving the gate open behind them.</p>
+          <p>The cottage was so small that it looked more like a doll’s house than a real home. Its old red bricks had faded in the sun, and the windows were so narrow that Matilda wondered how much light could possibly enter the rooms. A few plants grew beside the path, while two pretty windows looked out over a green spot.</p>
+          <p>“It’s not much to look at, but it’s where I live, and I’m quite happy here. It’s the perfect place to sleep.”</p>
+          <p><em>(Adapted from Roald Dahl – Matilda)</em></p>
+        </div>
+      </div>
+      <p id="reading-recording-indicator" hidden>● Recording</p>
+      <button id="reading-finish" type="button" disabled>Finish recording</button>
+    </div>
+
+    <div id="reading-results" class="result-panel" hidden>
+      <h2 id="reading-results-heading">Section 1 recording complete</h2>
+      <p>You can listen to your recording below.</p>
+      <audio id="reading-playback" controls></audio>
+      <p><a id="reading-download" download>Download section 1 recording (24-bit WAV)</a></p>
+      <p><a id="reading-metadata-download" download>Download recording information (JSON)</a></p>
+      <p id="result-status" role="status" aria-live="polite"></p>
+      <button id="continue-to-reading-section-two" type="button" hidden>Continue to the second part</button>
+      <button id="finish-test" type="button" hidden>Finish test</button>
+    </div>
+  </section>
+  <p id="status" role="status" aria-live="polite">Ready when you are.</p>
+</main>
+
+<script>
+"use strict";
+
+const TARGET_SAMPLE_RATE = 44100;
+const STOP_ACK_TIMEOUT_MS = 3000;
+
+const readingPreparation = document.getElementById("reading-preparation");
+const readingReadyButton = document.getElementById("reading-ready");
+const readingTask = document.getElementById("reading-task");
+const readingSectionLabel = document.getElementById("reading-section-label");
+const readingPassage = document.getElementById("reading-passage");
+const readingPassageOne = document.getElementById("reading-passage-one");
+const readingPassageTwo = document.getElementById("reading-passage-two");
+const readingCountdown = document.getElementById("reading-countdown");
+const readingRecordingIndicator = document.getElementById("reading-recording-indicator");
+const readingFinishButton = document.getElementById("reading-finish");
+const readingResults = document.getElementById("reading-results");
+const readingResultsHeading = document.getElementById("reading-results-heading");
+const readingPlayback = document.getElementById("reading-playback");
+const readingDownload = document.getElementById("reading-download");
+const readingMetadataDownload = document.getElementById("reading-metadata-download");
+const resultStatus = document.getElementById("result-status");
+const continueToSecondReadingSectionButton = document.getElementById("continue-to-reading-section-two");
+const finishTestButton = document.getElementById("finish-test");
+const statusText = document.getElementById("status");
+
+let audioContext = null;
+let stream = null;
+let source = null;
+let workletNode = null;
+let silentGain = null;
+let chunks = [];
+let recording = false;
+let starting = false;
+let stopAcknowledged = null;
+let stopTimeout = null;
+let workletStats = null;
+let readingCountdownTimer = null;
+let currentReadingSection = 1;
+let readingAttemptStarted = false;
+let readingRecordingStartedAt = null;
+let readingRecordingEndedAt = null;
+let readingRecordingUrls = { 1: null, 2: null };
+let readingMetadataUrls = { 1: null, 2: null };
+let completedSections = { 1: false, 2: false };
+
+function toDbfs(amplitude) {
+  if (!Number.isFinite(amplitude) || amplitude <= 0) return "−∞ dBFS";
+  return (20 * Math.log10(amplitude)).toFixed(1) + " dBFS";
+}
+
+function measureFloatLevels(samples) {
+  let peak = 0;
+  let sumSquares = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const value = Number.isFinite(samples[i]) ? samples[i] : 0;
+    const absolute = Math.abs(value);
+    if (absolute > peak) peak = absolute;
+    sumSquares += value * value;
+  }
+  const rms = samples.length ? Math.sqrt(sumSquares / samples.length) : 0;
+  return {
+    sampleCount: samples.length, peak, rms,
+    peakDbfs: toDbfs(peak), rmsDbfs: toDbfs(rms)
+  };
+}
+
+async function measureWav24BitLevels(blob) {
+  const buffer = await blob.arrayBuffer();
+  const view = new DataView(buffer);
+  const dataSize = view.getUint32(40, true);
+  const sampleCount = Math.floor(dataSize / 3);
+  let peak = 0;
+  let sumSquares = 0;
+  for (let i = 0; i < sampleCount; i++) {
+    const offset = 44 + i * 3;
+    const unsigned = view.getUint8(offset) |
+      (view.getUint8(offset + 1) << 8) |
+      (view.getUint8(offset + 2) << 16);
+    const signed = (unsigned & 0x800000) ? unsigned - 0x1000000 : unsigned;
+    const value = signed < 0 ? signed / 8388608 : signed / 8388607;
+    const absolute = Math.abs(value);
+    if (absolute > peak) peak = absolute;
+    sumSquares += value * value;
+  }
+  const rms = sampleCount ? Math.sqrt(sumSquares / sampleCount) : 0;
+  return {
+    sampleCount, peak, rms,
+    peakDbfs: toDbfs(peak), rmsDbfs: toDbfs(rms)
+  };
+}
+
+function encodeWav24BitMono(samples, sampleRate) {
+  const bytesPerSample = 3;
+  const dataSize = samples.length * bytesPerSample;
+  const padding = dataSize % 2;
+  if (dataSize > 0xFFFFFFFF - 36 - padding) {
+    throw new Error("The recording is too large for a standard WAV file.");
+  }
+  const buffer = new ArrayBuffer(44 + dataSize + padding);
+  const view = new DataView(buffer);
+  function writeString(offset, text) {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  }
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize + padding, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * bytesPerSample, true);
+  view.setUint16(32, bytesPerSample, true);
+  view.setUint16(34, 24, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+  for (let i = 0; i < samples.length; i++) {
+    const rawSample = Number.isFinite(samples[i]) ? samples[i] : 0;
+    const sample = Math.max(-1, Math.min(1, rawSample));
+    const signedValue = Math.round(sample < 0 ? sample * 8388608 : sample * 8388607);
+    const value24 = signedValue < 0 ? signedValue + 16777216 : signedValue;
+    const offset = 44 + i * 3;
+    view.setUint8(offset, value24 & 0xFF);
+    view.setUint8(offset + 1, (value24 >> 8) & 0xFF);
+    view.setUint8(offset + 2, (value24 >> 16) & 0xFF);
+  }
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+async function cleanUpRecorder() {
+  recording = false;
+  if (stopTimeout !== null) {
+    clearTimeout(stopTimeout);
+    stopTimeout = null;
+  }
+  stopAcknowledged = null;
+  if (workletNode) {
+    workletNode.port.onmessage = null;
+    try { workletNode.port.close(); } catch {}
+    try { workletNode.disconnect(); } catch {}
+    workletNode = null;
+  }
+  if (source) {
+    try { source.disconnect(); } catch {}
+    source = null;
+  }
+  if (silentGain) {
+    try { silentGain.disconnect(); } catch {}
+    silentGain = null;
+  }
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  if (audioContext && audioContext.state !== "closed") {
+    try { await audioContext.close(); } catch {}
+  }
+  audioContext = null;
+}
+
+function fitCurrentReadingPassage() {
+  const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const compactScreen = viewportWidth <= 380 || viewportHeight <= 700;
+  const preferredSize = compactScreen ? 15 : 16;
+  const preferredLineHeight = compactScreen ? 1.2 : 1.3;
+  readingPassage.style.fontSize = preferredSize + "px";
+  readingPassage.style.lineHeight = String(preferredLineHeight);
+  const fits = () =>
+    readingPassage.scrollHeight <= readingPassage.clientHeight + 1 &&
+    readingPassage.scrollWidth <= readingPassage.clientWidth + 1;
+  if (fits()) return preferredSize;
+  if (preferredSize > 15) {
+    for (let size = preferredSize - 0.25; size >= 15; size -= 0.25) {
+      const lineHeight = 1.2 + ((size - 15) * 0.1);
+      readingPassage.style.fontSize = size + "px";
+      readingPassage.style.lineHeight = lineHeight.toFixed(3);
+      if (fits()) return size;
+    }
+  }
+  readingPassage.style.fontSize = "15px";
+  readingPassage.style.lineHeight = "1.2";
+  if (!fits()) {
+    throw new Error("This screen does not have enough space to display the complete passage at the minimum text size of 15 px. Please increase your browser's available screen area or contact the researcher. Recording has not started.");
+  }
+  return 15;
+}
+
+function startReadingCountdown() {
+  let countdownValue = 5;
+  readingCountdown.textContent = "Recording starts in " + countdownValue + "…";
+  statusText.textContent = "Microphone ready. The recording will start automatically.";
+  function nextReadingCount() {
+    countdownValue--;
+    if (countdownValue > 0) {
+      readingCountdown.textContent = "Recording starts in " + countdownValue + "…";
+      readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+    } else {
+      readingCountdown.textContent = "Recording started.";
+      readingCountdownTimer = null;
+      readingRecordingStartedAt = new Date().toISOString();
+      readingRecordingEndedAt = null;
+      workletNode.port.postMessage("start");
+      recording = true;
+      starting = false;
+      readingRecordingIndicator.hidden = false;
+      readingFinishButton.disabled = false;
+      statusText.textContent = "Recording started. Read this section, then press Finish recording.";
+    }
+  }
+  readingCountdownTimer = window.setTimeout(nextReadingCount, 1000);
+}
+
+async function startCurrentReadingSection() {
+  if (starting || recording || readingAttemptStarted) return;
+  starting = true;
+  readingAttemptStarted = true;
+  readingReadyButton.disabled = true;
+  readingFinishButton.disabled = true;
+  readingResults.hidden = true;
+  readingRecordingIndicator.hidden = true;
+  readingCountdown.textContent = "";
+  readingTask.hidden = true;
+  chunks = [];
+  workletStats = null;
+  statusText.textContent = "Please allow microphone access. The section and countdown will appear when the microphone is ready.";
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone recording is unavailable in this browser. Please open this page in a supported browser over HTTPS.");
+    }
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: { ideal: 1 },
+        sampleRate: { ideal: TARGET_SAMPLE_RATE },
+        sampleSize: { ideal: 24 },
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio is not supported by this browser.");
+    let contextNote = "";
+    try {
+      audioContext = new AudioContextClass({ sampleRate: TARGET_SAMPLE_RATE });
+    } catch (error) {
+      contextNote = "The browser could not create a 44.1 kHz AudioContext. (" + error.message + ")";
+      audioContext = new AudioContextClass();
+    }
+    await audioContext.resume();
+    if (!audioContext.audioWorklet) throw new Error("AudioWorklet is not supported by this browser.");
+    await audioContext.audioWorklet.addModule("recorder-worklet.js?v=channel-stats-2");
+    const track = stream.getAudioTracks()[0];
+    if (!track) throw new Error("No audio input track was found.");
+    const settings = track.getSettings();
+    const constraints = track.getConstraints();
+    window.currentAudioDiagnostics = {
+      capturedAt: new Date().toISOString(),
+      wavFormat: {
+        container: "WAV", encoding: "signed PCM", channelCount: 1,
+        bitDepth: 24, sampleRateHz: audioContext.sampleRate
+      },
+      targetSampleRateHz: TARGET_SAMPLE_RATE,
+      targetSampleRateMatches: audioContext.sampleRate === TARGET_SAMPLE_RATE,
+      microphoneSettings: {
+        sampleRateHz: settings.sampleRate ?? null,
+        sampleSizeBits: settings.sampleSize ?? null,
+        channelCount: settings.channelCount ?? null,
+        echoCancellation: settings.echoCancellation ?? null,
+        noiseSuppression: settings.noiseSuppression ?? null,
+        autoGainControl: settings.autoGainControl ?? null
+      },
+      requestedConstraints: {
+        sampleRate: constraints.sampleRate ?? null,
+        sampleSize: constraints.sampleSize ?? null,
+        channelCount: constraints.channelCount ?? null,
+        echoCancellation: constraints.echoCancellation ?? null,
+        noiseSuppression: constraints.noiseSuppression ?? null,
+        autoGainControl: constraints.autoGainControl ?? null
+      },
+      audioContextNote: contextNote || null,
+      signal: null
+    };
+    source = audioContext.createMediaStreamSource(stream);
+    workletNode = new AudioWorkletNode(audioContext, "recorder-processor", {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]
+    });
+    silentGain = audioContext.createGain();
+    silentGain.gain.value = 0;
+    source.connect(workletNode);
+    workletNode.connect(silentGain);
+    silentGain.connect(audioContext.destination);
+    workletNode.port.onmessage = event => {
+      if (event.data instanceof Float32Array) {
+        chunks.push(new Float32Array(event.data));
+        return;
+      }
+      if (event.data && event.data.type === "stopped" && stopAcknowledged) {
+        workletStats = event.data.stats || null;
+        const resolveStop = stopAcknowledged;
+        stopAcknowledged = null;
+        if (stopTimeout !== null) {
+          clearTimeout(stopTimeout);
+          stopTimeout = null;
+        }
+        resolveStop();
+      }
+    };
+    readingPreparation.hidden = true;
+    readingTask.hidden = false;
+    readingPassageOne.hidden = currentReadingSection !== 1;
+    readingPassageTwo.hidden = currentReadingSection !== 2;
+    readingSectionLabel.textContent = "Section " + currentReadingSection + " of 2";
+    document.body.classList.add("part-two-reading");
+    statusText.textContent = "Checking the passage display before recording…";
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        try {
+          const fittedSize = fitCurrentReadingPassage();
+          statusText.textContent = "The complete section fits on your screen at " +
+            fittedSize.toFixed(2) + " px. Recording starts in five seconds.";
+          startReadingCountdown();
+        } catch (fitError) {
+          (async () => {
+            await cleanUpRecorder();
+            starting = false;
+            readingAttemptStarted = false;
+            readingPreparation.hidden = false;
+            readingTask.hidden = true;
+            document.body.classList.remove("part-two-reading");
+            readingReadyButton.disabled = false;
+            readingReadyButton.textContent = currentReadingSection === 1 ? "Ready" : "Retry section 2";
+            readingRecordingIndicator.hidden = true;
+            readingFinishButton.disabled = true;
+            readingCountdown.textContent = "";
+            statusText.textContent = fitError.message;
+          })();
+        }
+      });
+    });
+  } catch (error) {
+    if (readingCountdownTimer !== null) {
+      clearTimeout(readingCountdownTimer);
+      readingCountdownTimer = null;
+    }
+    await cleanUpRecorder();
+    starting = false;
+    readingAttemptStarted = false;
+    readingPreparation.hidden = false;
+    readingTask.hidden = true;
+    document.body.classList.remove("part-two-reading");
+    readingReadyButton.disabled = false;
+    readingReadyButton.textContent = currentReadingSection === 1 ? "Ready" : "Retry section 2";
+    readingRecordingIndicator.hidden = true;
+    readingFinishButton.disabled = true;
+    readingCountdown.textContent = "";
+    statusText.textContent = "Could not prepare section " + currentReadingSection + ": " + error.message;
+  }
+}
+
+async function finishCurrentReadingSection() {
+  if (!recording || !workletNode || !audioContext) return;
+  const sectionNumber = currentReadingSection;
+  const currentWorklet = workletNode;
+  const sampleRate = audioContext.sampleRate;
+  readingRecordingEndedAt = new Date().toISOString();
+  recording = false;
+  readingAttemptStarted = false;
+  document.body.classList.remove("part-two-reading");
+  readingRecordingIndicator.hidden = true;
+  readingFinishButton.disabled = true;
+  statusText.textContent = "Finishing section " + sectionNumber + " recording…";
+  try {
+    await new Promise((resolve, reject) => {
+      stopAcknowledged = resolve;
+      stopTimeout = setTimeout(() => {
+        stopAcknowledged = null;
+        stopTimeout = null;
+        reject(new Error("The recorder did not confirm stopping. Please try again."));
+      }, STOP_ACK_TIMEOUT_MS);
+      currentWorklet.port.postMessage("stop");
+    });
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    if (totalLength === 0) throw new Error("No audio was captured. Please try recording this section again.");
+    const samples = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      samples.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const stats = workletStats;
+    await cleanUpRecorder();
+    const wav = encodeWav24BitMono(samples, sampleRate);
+    const rawLevels = measureFloatLevels(samples);
+    const wavLevels = await measureWav24BitLevels(wav);
+    const channels = stats?.channels?.length ? stats.channels.map((channel, index) => ({
+      channel: channel.channel ?? index + 1,
+      frames: channel.frames,
+      peak: channel.peak,
+      rms: channel.rms,
+      peakDbfs: toDbfs(channel.peak),
+      rmsDbfs: toDbfs(channel.rms)
+    })) : [];
+    const mixed = stats?.mixed ? {
+      frames: stats.mixed.frames,
+      peak: stats.mixed.peak,
+      rms: stats.mixed.rms,
+      peakDbfs: toDbfs(stats.mixed.peak),
+      rmsDbfs: toDbfs(stats.mixed.rms)
+    } : null;
+    const diagnostics = window.currentAudioDiagnostics || {};
+    diagnostics.signal = {
+      workletInputChannelCount: stats?.channelCount ?? null,
+      inputChannels: channels,
+      monoMix: mixed,
+      floatSamplesBeforeWavEncoding: rawLevels,
+      decodedWav: wavLevels,
+      recordingDurationSeconds: sampleRate > 0 ? rawLevels.sampleCount / sampleRate : null,
+      possibleClipping: rawLevels.peak >= 1 || wavLevels.peak >= 1
+    };
+    const startMs = readingRecordingStartedAt ? new Date(readingRecordingStartedAt).getTime() : null;
+    const endMs = readingRecordingEndedAt ? new Date(readingRecordingEndedAt).getTime() : null;
+    const metadata = {
+      task: "English passage reading",
+      sectionNumber,
+      sectionCount: 2,
+      sectionLabel: "Section " + sectionNumber + " of 2",
+      recordingStartTime: readingRecordingStartedAt,
+      recordingEndTime: readingRecordingEndedAt,
+      recordingDurationSeconds: startMs !== null && endMs !== null
+        ? Number(((endMs - startMs) / 1000).toFixed(3)) : null,
+      sampleRateHz: sampleRate,
+      format: "Mono, 24-bit PCM WAV",
+      audioDiagnostics: diagnostics,
+      collectedAt: new Date().toISOString()
+    };
+    const metadataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: "application/json" });
+    if (readingRecordingUrls[sectionNumber]) URL.revokeObjectURL(readingRecordingUrls[sectionNumber]);
+    if (readingMetadataUrls[sectionNumber]) URL.revokeObjectURL(readingMetadataUrls[sectionNumber]);
+    readingRecordingUrls[sectionNumber] = URL.createObjectURL(wav);
+    readingMetadataUrls[sectionNumber] = URL.createObjectURL(metadataBlob);
+    readingPlayback.src = readingRecordingUrls[sectionNumber];
+    readingDownload.href = readingRecordingUrls[sectionNumber];
+    readingDownload.download = "part-II-section-" + sectionNumber + "-24bit.wav";
+    readingMetadataDownload.href = readingMetadataUrls[sectionNumber];
+    readingMetadataDownload.download = "part-II-section-" + sectionNumber + "-metadata.json";
+    readingResultsHeading.textContent = "Section " + sectionNumber + " recording complete";
+    readingDownload.textContent = "Download section " + sectionNumber + " recording (24-bit WAV)";
+    readingMetadataDownload.textContent = "Download section " + sectionNumber + " recording information (JSON)";
+    readingTask.hidden = true;
+    readingResults.hidden = false;
+    completedSections[sectionNumber] = true;
+    continueToSecondReadingSectionButton.hidden = sectionNumber !== 1;
+    finishTestButton.hidden = sectionNumber !== 2;
+    resultStatus.textContent = "Saved locally in this page. Nothing has been uploaded.";
+    statusText.textContent = "Section " + sectionNumber + " ready: mono, 24-bit PCM WAV, " + sampleRate + " Hz.";
+  } catch (error) {
+    await cleanUpRecorder();
+    readingTask.hidden = true;
+    readingPreparation.hidden = false;
+    readingReadyButton.disabled = false;
+    readingReadyButton.textContent = "Retry section " + sectionNumber;
+    readingRecordingIndicator.hidden = true;
+    statusText.textContent = "Could not prepare section " + sectionNumber + " recording: " + error.message;
+  }
+}
+
+readingReadyButton.addEventListener("click", startCurrentReadingSection);
+readingFinishButton.addEventListener("click", finishCurrentReadingSection);
+
+continueToSecondReadingSectionButton.addEventListener("click", () => {
+  if (!completedSections[1]) return;
+  currentReadingSection = 2;
+  readingResults.hidden = true;
+  readingPreparation.hidden = false;
+  readingTask.hidden = true;
+  readingReadyButton.disabled = false;
+  readingReadyButton.textContent = "Ready";
+  readingPassageOne.hidden = true;
+  readingPassageTwo.hidden = false;
+  readingSectionLabel.textContent = "Section 2 of 2";
+  startCurrentReadingSection();
+});
+
+finishTestButton.addEventListener("click", () => {
+  if (!completedSections[1] || !completedSections[2]) return;
+  readingResults.hidden = true;
+  readingPreparation.hidden = false;
+  readingPreparation.innerHTML = "<h1>Part II complete</h1><p>Thank you. Both passage recordings are available to download from the recording screens. Make sure you have saved both WAV files and their JSON information files before closing this page.</p><p>No data has been uploaded.</p>";
+  statusText.textContent = "Test complete.";
+});
+
+window.addEventListener("pagehide", () => {
+  if (readingCountdownTimer !== null) clearTimeout(readingCountdownTimer);
+  Object.values(readingRecordingUrls).forEach(url => { if (url) URL.revokeObjectURL(url); });
+  Object.values(readingMetadataUrls).forEach(url => { if (url) URL.revokeObjectURL(url); });
+  if (stream) stream.getTracks().forEach(track => track.stop());
+  if (audioContext && audioContext.state !== "closed") audioContext.close().catch(() => {});
+});
+</script>
+</body>
+</html>
