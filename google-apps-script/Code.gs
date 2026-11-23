@@ -128,6 +128,8 @@ function doPost(event) {
         result = beginUpload_(request);
       } else if (request.action === "uploadChunk") {
         result = uploadChunk_(request);
+      } else if (request.action === "getUploadStatus") {
+        result = getUploadStatus_(request);
       } else {
         throw new Error("Unsupported upload action.");
       }
@@ -475,6 +477,44 @@ function uploadChunk_(request) {
   throw new Error("Google Drive did not accept the upload chunk (HTTP " + code + ").");
 }
 
+
+function getUploadStatus_(request) {
+  const uploadId = String(request.uploadId || "").toLowerCase();
+  const participantId = String(request.participantId || "").toLowerCase();
+  const participantCode = String(request.participantCode || "").toUpperCase();
+
+  if (!/^[a-f0-9]{32}$/.test(uploadId)) {
+    throw new Error("Invalid upload session.");
+  }
+
+  const stored = CacheService.getScriptCache().get("ee_upload_" + uploadId);
+  if (!stored) {
+    throw new Error("The upload session has expired. Please restart this upload.");
+  }
+
+  const session = JSON.parse(stored);
+  const participantFolder = getParticipantFolder_(participantId, participantCode);
+
+  if (
+    session.participantId !== participantId ||
+    session.folderId !== participantFolder.getId()
+  ) {
+    throw new Error("The upload session does not belong to this participant.");
+  }
+
+  const remote = queryDriveUpload_(session);
+
+  if (remote.expired) {
+    throw new Error("The Google Drive upload session expired. Please restart this upload.");
+  }
+
+  return {
+    completed: remote.completed === true,
+    fileName: session.fileName,
+    fileSize: session.fileSize,
+    nextOffset: remote.completed ? session.fileSize : remote.nextOffset
+  };
+}
 
 function queryDriveUpload_(session) {
   const response = UrlFetchApp.fetch(
