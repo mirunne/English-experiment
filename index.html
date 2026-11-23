@@ -5106,9 +5106,9 @@ window.addEventListener("pagehide", () => {
     URL.revokeObjectURL(metadataUrl);
   }
 
-  if (readingRecordingUrl) {
-    URL.revokeObjectURL(readingRecordingUrl);
-  }
+  Object.values(readingRecordingUrls).forEach(url => {
+    if (url) URL.revokeObjectURL(url);
+  });
 
   if (readingCountdownTimer !== null) {
     clearTimeout(readingCountdownTimer);
